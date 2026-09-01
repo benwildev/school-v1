@@ -1,0 +1,283 @@
+-- ============================================================================
+-- Migration 0002: Enums, SaaS Platform & Core Institutional Tables
+-- ============================================================================
+
+-- Create Enums
+CREATE TYPE "SchoolStatus" AS ENUM ('TRIAL', 'ACTIVE', 'SUSPENDED', 'INACTIVE');
+CREATE TYPE "RecordStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'ARCHIVED');
+CREATE TYPE "AttendanceType" AS ENUM ('DAILY', 'PERIOD_WISE', 'SUBJECT_WISE');
+CREATE TYPE "Division" AS ENUM ('DHAKA', 'CHITTAGONG', 'RAJSHAHI', 'KHULNA', 'BARISAL', 'SYLHET', 'RANGPUR', 'MYMENSINGH');
+CREATE TYPE "ClassCategory" AS ENUM ('PRE_PRIMARY', 'PRIMARY', 'JUNIOR_SECONDARY', 'SECONDARY', 'HIGHER_SECONDARY');
+CREATE TYPE "AcademicShift" AS ENUM ('MORNING', 'DAY', 'EVENING');
+CREATE TYPE "GenderRestriction" AS ENUM ('BOYS', 'GIRLS', 'CO_ED');
+CREATE TYPE "SubjectType" AS ENUM ('COMPULSORY', 'ELECTIVE', 'OPTIONAL_FOURTH', 'ADDITIONAL');
+CREATE TYPE "RoomType" AS ENUM ('GENERAL_CLASSROOM', 'SCIENCE_LAB', 'COMPUTER_LAB', 'LIBRARY', 'AUDITORIUM', 'STAFF_ROOM');
+CREATE TYPE "DayOfWeek" AS ENUM ('SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY');
+CREATE TYPE "CalendarEventType" AS ENUM ('NATIONAL_HOLIDAY', 'RELIGIOUS_HOLIDAY', 'SUMMER_VACATION', 'RAMADAN_EID_VACATION', 'EXAM_PERIOD', 'SPORTS_CULTURAL', 'MEETING', 'OTHER');
+CREATE TYPE "TargetAudience" AS ENUM ('ALL', 'STUDENTS', 'TEACHERS', 'STAFF');
+CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
+CREATE TYPE "BloodGroup" AS ENUM ('A_POSITIVE', 'A_NEGATIVE', 'B_POSITIVE', 'B_NEGATIVE', 'AB_POSITIVE', 'AB_NEGATIVE', 'O_POSITIVE', 'O_NEGATIVE');
+CREATE TYPE "Religion" AS ENUM ('ISLAM', 'HINDUISM', 'BUDDHISM', 'CHRISTIANITY', 'OTHER');
+CREATE TYPE "StudentStatus" AS ENUM ('ACTIVE', 'TRANSFERRED', 'GRADUATED', 'WITHDRAWN', 'SUSPENDED', 'DECEASED', 'INACTIVE');
+CREATE TYPE "GuardianRelation" AS ENUM ('FATHER', 'MOTHER', 'PATERNAL_UNCLE', 'MATERNAL_UNCLE', 'BROTHER', 'SISTER', 'GRANDFATHER', 'GRANDMOTHER', 'LEGAL_GUARDIAN');
+CREATE TYPE "CurriculumVersion" AS ENUM ('BANGLA_VERSION', 'ENGLISH_VERSION', 'ENGLISH_MEDIUM');
+CREATE TYPE "EnrollmentType" AS ENUM ('REGULAR', 'PROMOTED', 'NEW_ADMISSION', 'REPEATER', 'LATERAL_ENTRY');
+CREATE TYPE "EnrollmentStatus" AS ENUM ('ACTIVE', 'PROMOTED', 'REPEATED', 'TRANSFERRED_OUT', 'PASSED_OUT', 'DROPPED');
+CREATE TYPE "PromotionBatchStatus" AS ENUM ('DRAFT', 'PROCESSING', 'COMPLETED', 'REVERTED');
+CREATE TYPE "PromotionAction" AS ENUM ('PROMOTED', 'RETAINED_REPEATER', 'DOUBLE_PROMOTED', 'PASSED_OUT', 'DROPPED');
+CREATE TYPE "StudentDocType" AS ENUM ('BIRTH_CERTIFICATE', 'TRANSFER_CERTIFICATE', 'PREVIOUS_TRANSCRIPT', 'NID_CARD', 'MEDICAL_REPORT', 'PASSPORT_PHOTO', 'OTHER');
+CREATE TYPE "DocVerifyStatus" AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
+CREATE TYPE "TeacherDesignation" AS ENUM ('PRINCIPAL', 'VICE_PRINCIPAL', 'HEADMASTER', 'ASSISTANT_HEADMASTER', 'SENIOR_TEACHER', 'ASSISTANT_TEACHER', 'JUNIOR_TEACHER', 'GUEST_LECTURER');
+CREATE TYPE "TeacherStatus" AS ENUM ('ACTIVE', 'ON_LEAVE', 'RESIGNED', 'TERMINATED', 'RETIRED');
+CREATE TYPE "TeacherAssignmentRole" AS ENUM ('SUBJECT_TEACHER', 'CLASS_TEACHER', 'ASSISTANT_CLASS_TEACHER', 'EXAM_COORDINATOR');
+CREATE TYPE "AttendanceStatus" AS ENUM ('PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'LEAVE', 'EXCUSED');
+CREATE TYPE "AttendanceSource" AS ENUM ('MANUAL', 'BIOMETRIC_DEVICE', 'RFID_CARD', 'IMPORT', 'MOBILE_APP');
+CREATE TYPE "ExamType" AS ENUM ('TERM_EXAM', 'MODEL_TEST', 'CLASS_TEST', 'QUIZ', 'PRE_TEST', 'TEST_EXAM', 'ANNUAL_EXAM');
+CREATE TYPE "ExamTerm" AS ENUM ('FIRST_TERM', 'SECOND_TERM', 'FINAL_TERM', 'CONTINUOUS_ASSESSMENT');
+CREATE TYPE "ExamStatus" AS ENUM ('DRAFT', 'SCHEDULED', 'ONGOING', 'VALUATION', 'RESULTS_PUBLISHED', 'LOCKED');
+CREATE TYPE "MarkWorkflowStatus" AS ENUM ('DRAFT', 'SUBMITTED_BY_TEACHER', 'VERIFIED_BY_HEAD', 'APPROVED', 'PUBLISHED');
+CREATE TYPE "BillingFrequency" AS ENUM ('ONE_TIME', 'MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY');
+CREATE TYPE "BillingPeriodType" AS ENUM ('MONTHLY', 'ANNUAL', 'ONE_TIME', 'CUSTOM');
+CREATE TYPE "InvoiceStatus" AS ENUM ('UNPAID', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'VOIDED', 'WAIVED');
+CREATE TYPE "DiscountCategory" AS ENUM ('MERIT_SCHOLARSHIP', 'SIBLING_DISCOUNT', 'FREEDOM_FIGHTER_QUOTA', 'POVERTY_AID', 'STAFF_CHILD', 'SPECIAL_WAIVER');
+CREATE TYPE "DiscountCalculationType" AS ENUM ('PERCENTAGE', 'FIXED_AMOUNT');
+CREATE TYPE "DiscountFrequency" AS ENUM ('ONE_TIME', 'RECURRING_MONTHLY', 'ENTIRE_SESSION');
+CREATE TYPE "DiscountStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'CANCELLED', 'EXPIRED');
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'BKASH', 'NAGAD', 'ROCKET', 'UPAY', 'BANK_DEPOSIT', 'CHEQUE', 'ONLINE_GATEWAY');
+CREATE TYPE "PaymentGatewayProvider" AS ENUM ('SSLCOMMERZ', 'SHURJOPAY', 'BKASH_DIRECT', 'AAMARPAY');
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED', 'VOIDED', 'REFUNDED');
+CREATE TYPE "CreditTxType" AS ENUM ('CREDIT', 'DEBIT', 'REFUND', 'ADJUSTMENT', 'TRANSFER_IN', 'TRANSFER_OUT');
+CREATE TYPE "RefundStatus" AS ENUM ('REQUESTED', 'APPROVED', 'COMPLETED', 'REJECTED');
+CREATE TYPE "ApplicationSource" AS ENUM ('PUBLIC_ONLINE', 'ADMIN_MANUAL');
+CREATE TYPE "AdmissionStatus" AS ENUM ('SUBMITTED', 'UNDER_REVIEW', 'NEED_CORRECTION', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'ASSESSMENT_SCHEDULED', 'APPROVED', 'REJECTED', 'ENROLLED', 'CANCELLED');
+CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'LOCKED');
+CREATE TYPE "PermissionModule" AS ENUM ('STUDENTS', 'ACADEMICS', 'ATTENDANCE', 'MARKS', 'FEES', 'DISCOUNTS', 'PAYMENTS', 'ADMISSIONS', 'STAFF', 'COMMUNICATION', 'REPORTS', 'SETTINGS');
+CREATE TYPE "PermissionAction" AS ENUM ('VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'REJECT', 'PUBLISH', 'VERIFY', 'CANCEL', 'REFUND', 'EXPORT', 'IMPORT', 'PRINT');
+CREATE TYPE "PermissionScope" AS ENUM ('ENTIRE_SCHOOL', 'OWN_CAMPUS', 'ASSIGNED_CLASSES', 'ASSIGNED_SUBJECTS', 'OWN_STUDENTS', 'OWN_CHILDREN', 'OWN_DATA');
+CREATE TYPE "AuditAction" AS ENUM ('INSERT', 'UPDATE', 'DELETE', 'APPROVE', 'REJECT', 'PUBLISH', 'CANCEL', 'REFUND', 'PROMOTE', 'LOGIN');
+CREATE TYPE "FileCategory" AS ENUM ('STUDENT_PHOTO', 'STUDENT_DOC', 'TEACHER_DOC', 'RECEIPT_PDF', 'REPORT_CARD_PDF', 'CERTIFICATE_PDF', 'ADMISSION_DOC');
+CREATE TYPE "CertificateType" AS ENUM ('TRANSFER_CERTIFICATE', 'TESTIMONIAL', 'CHARACTER_CERTIFICATE', 'BONAFIDE_CERTIFICATE', 'CUSTOM');
+CREATE TYPE "CertificateStatus" AS ENUM ('DRAFT', 'ISSUED', 'CANCELLED');
+CREATE TYPE "MessageChannel" AS ENUM ('SMS', 'WHATSAPP', 'EMAIL', 'PUSH');
+CREATE TYPE "MessageType" AS ENUM ('ATTENDANCE_ABSENT', 'FEE_DUE_REMINDER', 'PAYMENT_CONFIRMATION', 'RESULT_NOTIFICATION', 'ADMISSION_UPDATE', 'GENERAL_NOTICE');
+CREATE TYPE "DeliveryStatus" AS ENUM ('QUEUED', 'SENT', 'DELIVERED', 'FAILED');
+CREATE TYPE "IntegrationType" AS ENUM ('SMS_GATEWAY', 'WHATSAPP_GATEWAY', 'PAYMENT_GATEWAY', 'BIOMETRIC_SERVER');
+CREATE TYPE "BiometricDeviceType" AS ENUM ('FINGERPRINT', 'RFID_CARD', 'FACIAL_RECOGNITION', 'HYBRID');
+CREATE TYPE "DeviceStatus" AS ENUM ('ONLINE', 'OFFLINE', 'MAINTENANCE');
+CREATE TYPE "BillingCycle" AS ENUM ('MONTHLY', 'YEARLY');
+CREATE TYPE "SubscriptionStatus" AS ENUM ('TRIAL', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'CANCELLED');
+CREATE TYPE "UsageMetricType" AS ENUM ('SMS_SENT', 'WHATSAPP_SENT', 'STORAGE_BYTES', 'ACTIVE_STUDENTS', 'ACTIVE_TEACHERS');
+
+-- Core Tables
+CREATE TABLE subscription_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  monthly_price_bdt DECIMAL(12, 2) NOT NULL,
+  yearly_price_bdt DECIMAL(12, 2) NOT NULL,
+  max_students INT NOT NULL,
+  max_teachers INT NOT NULL,
+  max_campuses INT NOT NULL DEFAULT 1,
+  max_storage_gb DECIMAL(5, 2) NOT NULL DEFAULT 10.00,
+  included_sms_count INT NOT NULL DEFAULT 500,
+  features JSONB NOT NULL DEFAULT '{}',
+  status "RecordStatus" NOT NULL DEFAULT 'ACTIVE'
+);
+
+CREATE TABLE schools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug VARCHAR(100) UNIQUE NOT NULL,
+  name_en VARCHAR(255) NOT NULL,
+  name_bn VARCHAR(255) NOT NULL,
+  eiin VARCHAR(20),
+  board_code VARCHAR(20),
+  registration_no VARCHAR(50),
+  established_year INT,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(30) NOT NULL,
+  alternate_phone VARCHAR(30),
+  website VARCHAR(255),
+  currency VARCHAR(10) NOT NULL DEFAULT 'BDT',
+  locale VARCHAR(10) NOT NULL DEFAULT 'bn-BD',
+  status "SchoolStatus" NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE school_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID UNIQUE NOT NULL REFERENCES schools(id) ON DELETE RESTRICT,
+  plan_id UUID NOT NULL REFERENCES subscription_plans(id) ON DELETE RESTRICT,
+  billing_cycle "BillingCycle" NOT NULL DEFAULT 'YEARLY',
+  startDate DATE NOT NULL,
+  endDate DATE NOT NULL,
+  status "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
+  auto_renew BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE subscription_periods (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  subscription_id UUID NOT NULL REFERENCES school_subscriptions(id) ON DELETE CASCADE,
+  plan_id UUID NOT NULL REFERENCES subscription_plans(id) ON DELETE RESTRICT,
+  billing_cycle "BillingCycle" NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  amount_paid DECIMAL(12, 2) NOT NULL,
+  payment_method "PaymentMethod" NOT NULL,
+  invoice_pdf_url TEXT,
+  status "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE platform_usage_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  metric_month INT NOT NULL,
+  metric_year INT NOT NULL,
+  sms_sent_count INT NOT NULL DEFAULT 0,
+  whatsapp_sent_count INT NOT NULL DEFAULT 0,
+  current_storage_bytes BIGINT NOT NULL DEFAULT 0,
+  active_student_count INT NOT NULL DEFAULT 0,
+  active_teacher_count INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_platform_usage_month_year UNIQUE (school_id, metric_month, metric_year)
+);
+
+CREATE TABLE usage_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  event_type "UsageMetricType" NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  reference_id VARCHAR(100),
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE campuses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE RESTRICT,
+  code VARCHAR(20) NOT NULL,
+  name_en VARCHAR(255) NOT NULL,
+  name_bn VARCHAR(255) NOT NULL,
+  phone VARCHAR(30),
+  email VARCHAR(255),
+  principal_name VARCHAR(150),
+  is_main_branch BOOLEAN NOT NULL DEFAULT FALSE,
+  status "RecordStatus" NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  CONSTRAINT uq_campus_id_school UNIQUE (id, school_id),
+  CONSTRAINT uq_campus_school_code UNIQUE (school_id, code)
+);
+
+CREATE TABLE school_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID UNIQUE NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  active_session_id UUID,
+  attendance_type "AttendanceType" NOT NULL DEFAULT 'DAILY',
+  enable_sms_alerts BOOLEAN NOT NULL DEFAULT FALSE,
+  enable_whatsapp_alerts BOOLEAN NOT NULL DEFAULT FALSE,
+  enable_biometric BOOLEAN NOT NULL DEFAULT FALSE,
+  enable_online_payment BOOLEAN NOT NULL DEFAULT FALSE,
+  allow_public_admission BOOLEAN NOT NULL DEFAULT FALSE,
+  timezone VARCHAR(50) NOT NULL DEFAULT 'Asia/Dhaka',
+  financial_year_start INT NOT NULL DEFAULT 1,
+  receipt_header_bn TEXT,
+  receipt_header_en TEXT,
+  receipt_footer_note TEXT,
+  custom_attributes JSONB NOT NULL DEFAULT '{}',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE school_branding (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID UNIQUE NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  logo_url TEXT,
+  favicon_url TEXT,
+  monogram_url TEXT,
+  principal_signature_url TEXT,
+  headmaster_signature_url TEXT,
+  official_seal_url TEXT,
+  primary_color VARCHAR(20) NOT NULL DEFAULT '#166534',
+  secondary_color VARCHAR(20) NOT NULL DEFAULT '#0f172a',
+  accent_color VARCHAR(20) NOT NULL DEFAULT '#eab308',
+  id_card_template VARCHAR(50) NOT NULL DEFAULT 'CLASSIC_CLEAN',
+  report_card_template VARCHAR(50) NOT NULL DEFAULT 'BANGLADESH_STANDARD',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE school_addresses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  campus_id UUID REFERENCES campuses(id) ON DELETE SET NULL,
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT,
+  post_office VARCHAR(100) NOT NULL,
+  post_code VARCHAR(20) NOT NULL,
+  thana VARCHAR(100) NOT NULL,
+  district VARCHAR(100) NOT NULL,
+  division "Division" NOT NULL,
+  country VARCHAR(100) NOT NULL DEFAULT 'Bangladesh',
+  is_primary BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID REFERENCES schools(id) ON DELETE RESTRICT,
+  email VARCHAR(255),
+  phone VARCHAR(30) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(200) NOT NULL,
+  avatar_url TEXT,
+  is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  status "UserStatus" NOT NULL DEFAULT 'ACTIVE',
+  last_login_at TIMESTAMPTZ,
+  last_login_ip VARCHAR(45),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  CONSTRAINT uq_user_id_school UNIQUE (id, school_id),
+  CONSTRAINT uq_user_school_phone UNIQUE (school_id, phone),
+  CONSTRAINT uq_user_school_email UNIQUE (school_id, email)
+);
+
+CREATE TABLE roles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID REFERENCES schools(id) ON DELETE RESTRICT,
+  code VARCHAR(50) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  is_system_role BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_role_id_school UNIQUE (id, school_id),
+  CONSTRAINT uq_role_school_code UNIQUE (school_id, code)
+);
+
+CREATE TABLE permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  module "PermissionModule" NOT NULL,
+  action "PermissionAction" NOT NULL,
+  code VARCHAR(100) UNIQUE NOT NULL,
+  description VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE role_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+  scope "PermissionScope" NOT NULL DEFAULT 'ENTIRE_SCHOOL',
+  CONSTRAINT uq_role_permission UNIQUE (role_id, permission_id)
+);
+
+CREATE TABLE user_roles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_user_role_campus UNIQUE (user_id, role_id, campus_id)
+);
