@@ -75,8 +75,10 @@ export async function authorize(params: {
     return { authorized: false, reason: 'User account is inactive or not found.' };
   }
 
-  // 2. SuperAdmin bypass for platform-level access
-  if (user.isSuperAdmin) {
+  // 2. SuperAdmin bypass for platform-level access, EXCEPT for tenant school reports
+  // Special Rule: SuperAdmin must not accidentally inherit ordinary school tenant report access without active membership.
+  const isReportPermission = permission.startsWith('REPORTS_') || PERMISSION_CATALOG[permission]?.module === 'REPORTS';
+  if (user.isSuperAdmin && !isReportPermission) {
     return { authorized: true, roles: ['SUPER_ADMIN'], evaluatedScope: 'ENTIRE_SCHOOL' };
   }
 
@@ -84,6 +86,11 @@ export async function authorize(params: {
   const membership = await validateSchoolMembership(userId, schoolId);
   if (!membership.isMember) {
     return { authorized: false, reason: 'User is not an active member of this school.' };
+  }
+
+  // If SuperAdmin is an active member of this school, they have full access
+  if (user.isSuperAdmin) {
+    return { authorized: true, roles: ['SUPER_ADMIN'], evaluatedScope: 'ENTIRE_SCHOOL' };
   }
 
   // 4. Special Business Rule: Discount Management Protection
@@ -97,6 +104,21 @@ export async function authorize(params: {
       return {
         authorized: false,
         reason: 'Unauthorized: Student discounts can only be authorized, modified, or cancelled by Admin or School Owner.',
+      };
+    }
+  }
+
+  // 4b. Special Business Rule: Separation of Duties for Payroll Finalization & Salary Approvals
+  // Only School Owner, Principal, or Admin can finalize payroll or modify salary/advances.
+  // Accountants, HR officers, Teachers, Students, and Parents are strictly barred from finalization/approvals.
+  if (['PAYROLL_FINALIZE', 'SALARY_CREATE', 'SALARY_UPDATE', 'ADVANCE_APPROVE'].includes(permission)) {
+    const isOwnerOrPrincipalOrAdmin = user.userRoles.some(
+      (ur: { role: { code: string } }) => ['SCHOOL_OWNER', 'ADMIN', 'PRINCIPAL'].includes(ur.role.code.toUpperCase())
+    );
+    if (!isOwnerOrPrincipalOrAdmin) {
+      return {
+        authorized: false,
+        reason: `Unauthorized: Permission '${permission}' requires School Owner, Principal, or Admin privileges.`,
       };
     }
   }

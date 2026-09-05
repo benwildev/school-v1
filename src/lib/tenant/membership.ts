@@ -40,6 +40,12 @@ export async function getUserAccessibleSchools(userId: string): Promise<Accessib
           },
         },
       },
+      studentUser: {
+        include: {
+          school: true,
+          student: true,
+        },
+      },
     },
   });
 
@@ -132,7 +138,25 @@ export async function getUserAccessibleSchools(userId: string): Promise<Accessib
     }
   }
 
-  // 5. Super Admin Platform Access (can access all active schools)
+  // 5. Student User profile -> student school
+  if (user.studentUser?.school && user.studentUser.school.status === 'ACTIVE' && !user.studentUser.school.deletedAt) {
+    const s = user.studentUser.school;
+    const existing = schoolMap.get(s.id);
+    if (existing) {
+      if (!existing.roleCodes.includes('STUDENT')) existing.roleCodes.push('STUDENT');
+    } else {
+      schoolMap.set(s.id, {
+        id: s.id,
+        slug: s.slug,
+        nameEn: s.nameEn,
+        nameBn: s.nameBn,
+        roleCodes: ['STUDENT'],
+        isMainTenant: user.schoolId === s.id,
+      });
+    }
+  }
+
+  // 6. Super Admin Platform Access (can access all active schools)
   if (user.isSuperAdmin) {
     const allSchools = await prisma.school.findMany({
       where: { status: 'ACTIVE', deletedAt: null },

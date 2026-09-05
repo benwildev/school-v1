@@ -10,7 +10,14 @@ import {
   ChevronRight,
   School as SchoolIcon,
   MapPinned,
-  CalendarRange
+  CalendarRange,
+  Users,
+  CreditCard,
+  UserCheck,
+  ClipboardCheck,
+  MessageSquare,
+  Bell,
+  Bus
 } from 'lucide-react';
 
 interface AuthUser {
@@ -92,6 +99,55 @@ export default function DashboardLayout({
       href: '/dashboard/settings/academic-sessions',
       icon: CalendarRange,
       active: pathname.startsWith('/dashboard/settings/academic-sessions'),
+    },
+    {
+      nameBn: 'উপস্থিতি ও বায়োমেট্রিক',
+      nameEn: 'Attendance & Biometrics',
+      href: '/dashboard/attendance',
+      icon: ClipboardCheck,
+      active: pathname.startsWith('/dashboard/attendance'),
+    },
+    {
+      nameBn: 'যোগাযোগ ও বার্তা',
+      nameEn: 'Communication & SMS',
+      href: '/dashboard/communication',
+      icon: MessageSquare,
+      active: pathname.startsWith('/dashboard/communication'),
+    },
+    {
+      nameBn: 'বিজ্ঞপ্তি',
+      nameEn: 'Notifications',
+      href: '/dashboard/notifications',
+      icon: Bell,
+      active: pathname.startsWith('/dashboard/notifications'),
+    },
+    {
+      nameBn: 'এইচআর ও কর্মী',
+      nameEn: 'HR & Staff',
+      href: '/dashboard/hr',
+      icon: Users,
+      active: pathname.startsWith('/dashboard/hr'),
+    },
+    {
+      nameBn: 'বেতন ও পেরোল',
+      nameEn: 'Payroll',
+      href: '/dashboard/payroll',
+      icon: CreditCard,
+      active: pathname.startsWith('/dashboard/payroll'),
+    },
+    {
+      nameBn: 'যানবাহন ও পরিবহন',
+      nameEn: 'Transport Management',
+      href: '/dashboard/transport',
+      icon: Bus,
+      active: pathname.startsWith('/dashboard/transport'),
+    },
+    {
+      nameBn: 'আমার পোর্টাল',
+      nameEn: 'My Portal',
+      href: '/dashboard/employee',
+      icon: UserCheck,
+      active: pathname.startsWith('/dashboard/employee'),
     },
   ];
 

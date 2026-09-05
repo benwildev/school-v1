@@ -246,6 +246,9 @@ enum AttendanceStatus {
   HALF_DAY
   LEAVE
   EXCUSED
+  HOLIDAY
+  WEEKEND
+  OFF_DAY
 }
 
 enum AttendanceSource {
@@ -408,6 +411,80 @@ enum UserStatus {
   LOCKED
 }
 
+enum EmploymentType {
+  PERMANENT
+  PROBATIONARY
+  CONTRACTUAL
+  PART_TIME
+  TEMPORARY
+  INTERN
+  DAILY_WAGE
+}
+
+enum EmployeeStatus {
+  DRAFT
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  RESIGNED
+  TERMINATED
+  RETIRED
+  INACTIVE
+}
+
+enum SalaryComponentType {
+  EARNING
+  DEDUCTION
+}
+
+enum SalaryCalculationMethod {
+  FIXED
+  PERCENT_OF_BASIC
+  PERCENT_OF_GROSS
+  FORMULA
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AdvanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  REPAID
+  CANCELLED
+}
+
+enum PayrollPeriodStatus {
+  DRAFT
+  CALCULATING
+  REVIEW
+  FINALIZED
+  PAID
+  CLOSED
+}
+
+enum PayrollRecordStatus {
+  DRAFT
+  CALCULATED
+  FINALIZED
+  PAID
+  VOIDED
+}
+
+enum PayrollPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
 enum PermissionModule {
   STUDENTS
   ACADEMICS
@@ -421,6 +498,9 @@ enum PermissionModule {
   COMMUNICATION
   REPORTS
   SETTINGS
+  TRANSPORT
+  LIBRARY
+  INVENTORY
 }
 
 enum PermissionAction {
@@ -491,6 +571,7 @@ enum MessageChannel {
   WHATSAPP
   EMAIL
   PUSH
+  IN_APP
 }
 
 enum MessageType {
@@ -500,13 +581,35 @@ enum MessageType {
   RESULT_NOTIFICATION
   ADMISSION_UPDATE
   GENERAL_NOTICE
+  ATTENDANCE_LATE
+  LEAVE_UPDATE
+  PAYROLL_NOTICE
+  EXAM_SCHEDULE
+  ANNOUNCEMENT
+  TRANSPORT_ALERT
 }
 
 enum DeliveryStatus {
   QUEUED
+  SENDING
   SENT
   DELIVERED
   FAILED
+  CANCELLED
+}
+
+enum EventProcessingStatus {
+  PENDING
+  PROCESSED
+  DUPLICATE
+  FAILED
+  NEEDS_REVIEW
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
 }
 
 enum IntegrationType {
@@ -548,6 +651,176 @@ enum UsageMetricType {
   STORAGE_BYTES
   ACTIVE_STUDENTS
   ACTIVE_TEACHERS
+}
+
+enum InvitationTargetType {
+  GUARDIAN
+  STUDENT
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum VehicleType {
+  BUS
+  MINIBUS
+  MICROBUS
+  VAN
+  AUTO_RICKSHAW
+  OTHER
+}
+
+enum VehicleStatus {
+  ACTIVE
+  IN_SERVICE
+  MAINTENANCE
+  OUT_OF_SERVICE
+  RETIRED
+}
+
+enum TripType {
+  MORNING_PICKUP
+  AFTERNOON_DROPOFF
+  SPECIAL_TRIP
+}
+
+enum TripStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TransportBoardingStatus {
+  BOARDED
+  NOT_BOARDED
+  PICKED_UP
+  DROPPED_OFF
+  ABSENT
+  UNKNOWN
+}
+
+enum BoardingEventSource {
+  MANUAL
+  MOBILE
+  RFID
+  GPS_DEVICE
+}
+
+enum TransportAssignmentStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum BookCondition {
+  NEW
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+}
+
+enum BookCopyStatus {
+  AVAILABLE
+  ISSUED
+  RESERVED
+  LOST
+  DAMAGED
+  WITHDRAWN
+  MAINTENANCE
+}
+
+enum BorrowerType {
+  STUDENT
+  EMPLOYEE
+}
+
+enum LoanStatus {
+  ISSUED
+  RETURNED
+  OVERDUE
+  LOST
+  DAMAGED
+}
+
+enum ReservationStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
+enum LibraryFineType {
+  OVERDUE
+  LOST_BOOK
+  DAMAGE
+  OTHER
+}
+
+enum LibraryFineStatus {
+  UNPAID
+  PAID
+  WAIVED
+}
+
+enum InventoryItemType {
+  CONSUMABLE
+  ASSET
+}
+
+enum StockUnit {
+  PCS
+  BOX
+  KG
+  LITER
+  SET
+  ROLL
+  PACKET
+  METER
+  OTHER
+}
+
+enum StockMovementType {
+  PURCHASE_IN
+  TRANSFER_IN
+  TRANSFER_OUT
+  ISSUE_OUT
+  RETURN_IN
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  DAMAGE
+  LOSS
+  DISPOSAL
+}
+
+enum PurchaseStatus {
+  ORDERED
+  RECEIVED
+  PARTIAL
+  CANCELLED
+}
+
+enum AssetStatus {
+  AVAILABLE
+  ASSIGNED
+  MAINTENANCE
+  LOST
+  DAMAGED
+  DISPOSED
+  RETIRED
+}
+
+enum AssetCondition {
+  NEW
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
 }
 
 // ============================================================================
@@ -630,6 +903,61 @@ model School {
   subscriptionPeriods      SubscriptionPeriod[]
   usageMetrics             PlatformUsageMetric[]
   usageEvents              UsageEvent[]
+  studentUsers             StudentUser[]
+  accountInvitations       AccountInvitation[]
+  departments              Department[]
+  designations             Designation[]
+  employees                Employee[]
+  employeeDocuments        EmployeeDocument[]
+  salaryComponents         SalaryComponent[]
+  salaryStructures         SalaryStructure[]
+  salaryStructureItems     SalaryStructureItem[]
+  salaryAssignments        EmployeeSalaryAssignment[]
+  employeeSalaryItems      EmployeeSalaryItem[]
+  leaveTypes               LeaveType[]
+  leaveBalances            LeaveBalance[]
+  leaveRequests            LeaveRequest[]
+  salaryAdvances           SalaryAdvance[]
+  advanceRepaymentLogs     AdvanceRepaymentLog[]
+  payrollPeriods           PayrollPeriod[]
+  payrollRecords           PayrollRecord[]
+  payrollItems             PayrollItem[]
+  payrollPayments          PayrollPayment[]
+  rawAttendanceEvents      RawAttendanceEvent[]
+  attendanceRules          AttendanceRule[]
+  employeeShifts           EmployeeShift[]
+  attendanceCorrections    AttendanceCorrection[]
+  communicationCampaigns   CommunicationCampaign[]
+  notificationPreferences  NotificationPreference[]
+  vehicles                 Vehicle[]
+  transportRoutes          TransportRoute[]
+  routeStops               RouteStop[]
+  vehicleDriverAssignments VehicleDriverAssignment[]
+  studentTransportAssignments StudentTransportAssignment[]
+  transportTrips           TransportTrip[]
+  transportBoardingEvents  TransportBoardingEvent[]
+  vehicleMaintenanceLogs   VehicleMaintenanceLog[]
+  librarySettings          LibrarySetting?
+  libraryCategories        LibraryCategory[]
+  libraryAuthors           LibraryAuthor[]
+  libraryPublishers        LibraryPublisher[]
+  libraryBooks             LibraryBook[]
+  libraryBookCopies        LibraryBookCopy[]
+  libraryLoans             LibraryLoan[]
+  libraryReservations      LibraryReservation[]
+  libraryFines             LibraryFine[]
+  inventoryCategories      InventoryCategory[]
+  inventoryItems           InventoryItem[]
+  inventorySuppliers       InventorySupplier[]
+  inventoryPurchases       InventoryPurchase[]
+  inventoryPurchaseItems   InventoryPurchaseItem[]
+  stockMovements           StockMovement[]
+  inventoryTransfers       InventoryTransfer[]
+  assets                   Asset[]
+  assetAssignments         AssetAssignment[]
+  assetMaintenanceLogs     AssetMaintenanceLog[]
+  savedReports             SavedReport[]
+  reportExportLogs         ReportExportLog[]
 
   @@map("schools")
 }
@@ -659,6 +987,18 @@ model Campus {
   userRoles        UserRole[]
   addresses        SchoolAddress[]
   admissionApps    AdmissionApplication[]
+  employees        Employee[]
+  payrollRecords   PayrollRecord[]
+  attendanceRules  AttendanceRule[]
+  vehicles                 Vehicle[]
+  transportRoutes          TransportRoute[]
+  libraryBookCopies        LibraryBookCopy[]
+  inventoryPurchases       InventoryPurchase[]
+  stockMovements           StockMovement[]
+  transfersSource          InventoryTransfer[]        @relation("TransferSourceCampus")
+  transfersDestination     InventoryTransfer[]        @relation("TransferDestinationCampus")
+  assets                   Asset[]
+  assetAssignments         AssetAssignment[]
 
   @@unique([id, schoolId])
   @@unique([schoolId, code])
@@ -756,6 +1096,7 @@ model AcademicSession {
   sourceBatches      PromotionBatch[]          @relation("SourceSession")
   targetBatches      PromotionBatch[]          @relation("TargetSession")
   assessmentConfigs  SubjectAssessmentConfig[]
+  studentAttendances StudentAttendance[]
 
   @@unique([id, schoolId])
   @@unique([schoolId, name])
@@ -783,6 +1124,7 @@ model Class {
   feeStructures      FeeStructure[]
   studentExamResults StudentExamResult[]
   admissionApps      AdmissionApplication[]
+  studentAttendances StudentAttendance[]
 
   @@unique([id, schoolId])
   @@unique([schoolId, numericLevel, nameEn])
@@ -832,6 +1174,7 @@ model Section {
   routines           Routine[]
   teacherAssignments TeacherAssignment[]
   studentExamResults StudentExamResult[]
+  studentAttendances StudentAttendance[]
 
   @@unique([id, schoolId])
   @@unique([schoolId, classId, nameEn, shift])
@@ -906,8 +1249,10 @@ model Classroom {
 
   school        School         @relation(fields: [schoolId], references: [id], onDelete: Restrict)
   campus        Campus?        @relation(fields: [campusId], references: [id], onDelete: SetNull)
-  routines      Routine[]
-  examSchedules ExamSchedule[]
+  routines         Routine[]
+  examSchedules    ExamSchedule[]
+  assets           Asset[]
+  assetAssignments AssetAssignment[]
 
   @@unique([schoolId, campusId, roomNo])
   @@map("classrooms")
@@ -1022,6 +1367,14 @@ model Student {
   certificates       Certificate[]
   messageLogs        MessageLog[]
   admissionApp       AdmissionApplication?
+  studentUser        StudentUser?
+  invitations        AccountInvitation[]
+  rawAttendanceEvents RawAttendanceEvent[]
+  transportAssignments StudentTransportAssignment[]
+  boardingEvents       TransportBoardingEvent[]
+  libraryLoans         LibraryLoan[]
+  libraryReservations  LibraryReservation[]
+  libraryFines         LibraryFine[]
 
   @@unique([id, schoolId])
   @@unique([schoolId, studentCode])
@@ -1050,10 +1403,11 @@ model Guardian {
   createdAt      DateTime         @default(now()) @db.Timestamptz()
   updatedAt      DateTime         @default(now()) @updatedAt @db.Timestamptz()
 
-  school      School            @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  school      School              @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   students    StudentGuardian[]
   messageLogs MessageLog[]
+  invitations AccountInvitation[]
 
   @@unique([id, schoolId])
   @@index([schoolId, phone])
@@ -1127,6 +1481,9 @@ model Enrollment {
   certificates     Certificate[]
   sourcePromotions PromotionItem[]     @relation("SourceEnrollment")
   targetPromotions PromotionItem[]     @relation("TargetEnrollment")
+  transportAssignments StudentTransportAssignment[]
+  boardingEvents       TransportBoardingEvent[]
+  libraryLoans         LibraryLoan[]
 
   @@unique([id, schoolId, studentId])
   @@unique([id, schoolId])
@@ -1238,6 +1595,7 @@ model Teacher {
   school              School               @relation(fields: [schoolId], references: [id], onDelete: Restrict)
   campus              Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
   user                User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  employee            Employee?
   routines            Routine[]
   assignments         TeacherAssignment[]
   employeeAttendances EmployeeAttendance[]
@@ -1280,59 +1638,89 @@ model TeacherAssignment {
 // ============================================================================
 
 model StudentAttendance {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  schoolId     String           @db.Uuid
-  studentId    String           @db.Uuid
-  enrollmentId String           @db.Uuid
-  date         DateTime         @db.Date
-  periodId     String?          @db.Uuid
-  status       AttendanceStatus
-  source       AttendanceSource @default(MANUAL)
-  checkInTime  DateTime?        @db.Time()
-  checkOutTime DateTime?        @db.Time()
-  lateMinutes  Int              @default(0)
-  leaveReason  String?          @db.Text
-  markedById   String           @db.Uuid
-  markedAt     DateTime         @default(now()) @db.Timestamptz()
-  updatedById  String?          @db.Uuid
-  updatedAt    DateTime         @default(now()) @updatedAt @db.Timestamptz()
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId           String             @db.Uuid
+  studentId          String             @db.Uuid
+  enrollmentId       String             @db.Uuid
+  academicSessionId  String?            @db.Uuid
+  classId            String?            @db.Uuid
+  sectionId          String?            @db.Uuid
+  date               DateTime           @db.Date
+  periodId           String?            @db.Uuid
+  status             AttendanceStatus
+  source             AttendanceSource   @default(MANUAL)
+  checkInTime        DateTime?          @db.Time()
+  checkOutTime       DateTime?          @db.Time()
+  lateMinutes        Int                @default(0)
+  leaveReason        String?            @db.Text
+  markedById         String             @db.Uuid
+  markedAt           DateTime           @default(now()) @db.Timestamptz()
+  updatedById        String?            @db.Uuid
+  updatedAt          DateTime           @default(now()) @updatedAt @db.Timestamptz()
+  deviceId           String?            @db.Uuid
+  rawEventId         String?            @db.Uuid
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedById       String?            @db.Uuid
+  verifiedAt         DateTime?          @db.Timestamptz()
 
-  school     School     @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  period     Routine?   @relation(fields: [periodId], references: [id], onDelete: SetNull)
-  markedBy   User       @relation("MarkedStudentAttendances", fields: [markedById], references: [id], onDelete: Restrict)
-  updatedBy  User?      @relation("UpdatedStudentAttendances", fields: [updatedById], references: [id], onDelete: SetNull)
+  school             School                 @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  student            Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment         Enrollment             @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  academicSession    AcademicSession?       @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
+  class              Class?                 @relation(fields: [classId], references: [id], onDelete: Restrict)
+  section            Section?               @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  period             Routine?               @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  markedBy           User                   @relation("MarkedStudentAttendances", fields: [markedById], references: [id], onDelete: Restrict)
+  updatedBy          User?                  @relation("UpdatedStudentAttendances", fields: [updatedById], references: [id], onDelete: SetNull)
+  device             BiometricDevice?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  rawEvent           RawAttendanceEvent?    @relation(fields: [rawEventId], references: [id], onDelete: SetNull)
+  verifiedBy         User?                  @relation("VerifiedStudentAttendances", fields: [verifiedById], references: [id], onDelete: SetNull)
+  corrections        AttendanceCorrection[]
 
   @@unique([schoolId, studentId, date, periodId])
   @@index([schoolId, date, status])
   @@index([enrollmentId, date])
   @@index([studentId, date])
+  @@index([schoolId, classId, sectionId, date])
   @@map("student_attendances")
 }
 
 model EmployeeAttendance {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  schoolId     String           @db.Uuid
-  userId       String           @db.Uuid
-  teacherId    String?          @db.Uuid
-  date         DateTime         @db.Date
-  status       AttendanceStatus
-  source       AttendanceSource @default(MANUAL)
-  checkInTime  DateTime?        @db.Time()
-  checkOutTime DateTime?        @db.Time()
-  workingHours Decimal?         @db.Decimal(4, 2)
-  lateMinutes  Int              @default(0)
-  isOvertime   Boolean          @default(false)
-  markedById   String           @db.Uuid
-  markedAt     DateTime         @default(now()) @db.Timestamptz()
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId           String             @db.Uuid
+  userId             String             @db.Uuid
+  employeeId         String?            @db.Uuid
+  teacherId          String?            @db.Uuid
+  date               DateTime           @db.Date
+  status             AttendanceStatus
+  source             AttendanceSource   @default(MANUAL)
+  checkInTime        DateTime?          @db.Time()
+  checkOutTime       DateTime?          @db.Time()
+  workingHours       Decimal?           @db.Decimal(4, 2)
+  lateMinutes        Int                @default(0)
+  isOvertime         Boolean            @default(false)
+  markedById         String             @db.Uuid
+  markedAt           DateTime           @default(now()) @db.Timestamptz()
+  deviceId           String?            @db.Uuid
+  rawEventId         String?            @db.Uuid
+  shiftId            String?            @db.Uuid
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedById       String?            @db.Uuid
+  verifiedAt         DateTime?          @db.Timestamptz()
 
-  school   School   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  user     User     @relation("EmployeeAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
-  teacher  Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  markedBy User     @relation("MarkedEmployeeAttendances", fields: [markedById], references: [id], onDelete: Restrict)
+  school             School                 @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  user               User                   @relation("EmployeeAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
+  employee           Employee?              @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  teacher            Teacher?               @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  markedBy           User                   @relation("MarkedEmployeeAttendances", fields: [markedById], references: [id], onDelete: Restrict)
+  device             BiometricDevice?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  rawEvent           RawAttendanceEvent?    @relation(fields: [rawEventId], references: [id], onDelete: SetNull)
+  shift              EmployeeShift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  verifiedBy         User?                  @relation("VerifiedEmployeeAttendances", fields: [verifiedById], references: [id], onDelete: SetNull)
+  corrections        AttendanceCorrection[]
 
   @@unique([schoolId, userId, date])
+  @@index([schoolId, employeeId, date])
   @@index([schoolId, date, status])
   @@map("employee_attendances")
 }
@@ -1537,6 +1925,7 @@ model FeeStructure {
   class           Class           @relation(fields: [classId], references: [id], onDelete: Restrict)
   group           AcademicGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
   studentFees     StudentFee[]
+  studentTransportAssignments StudentTransportAssignment[]
 
   @@unique([id, schoolId])
   @@index([schoolId, academicSessionId, feeTypeId, classId])
@@ -1577,6 +1966,7 @@ model StudentFee {
   voidedBy           User?                      @relation("VoidedInvoices", fields: [voidedById], references: [id], onDelete: SetNull)
   allocations        PaymentAllocation[]
   creditTransactions StudentCreditTransaction[]
+  libraryFines       LibraryFine[]
 
   @@unique([id, schoolId, studentId])
   @@unique([id, schoolId])
@@ -1934,6 +2324,38 @@ model User {
   reviewedAdmissions        AdmissionApplication[]     @relation("ReviewedAdmissions")
   issuedCertificates        Certificate[]              @relation("IssuedCertificates")
   executedPromotions        PromotionBatch[]           @relation("ExecutedPromotions")
+  studentUser               StudentUser?
+  acceptedInvitations       AccountInvitation[]        @relation("AcceptedInvitations")
+  createdInvitations        AccountInvitation[]        @relation("CreatedInvitations")
+  employee                  Employee?
+  verifiedEmployeeDocs      EmployeeDocument[]         @relation("VerifiedEmployeeDocs")
+  approvedSalaryAssignments EmployeeSalaryAssignment[] @relation("ApprovedSalaryAssignments")
+  actionedLeaveRequests     LeaveRequest[]             @relation("ActionedLeaveRequests")
+  approvedSalaryAdvances    SalaryAdvance[]            @relation("ApprovedSalaryAdvances")
+  finalizedPayrollPeriods   PayrollPeriod[]            @relation("FinalizedPayrollPeriods")
+  generatedPayrollRecords   PayrollRecord[]            @relation("GeneratedPayrollRecords")
+  finalizedPayrollRecords   PayrollRecord[]            @relation("FinalizedPayrollRecords")
+  disbursedPayrollPayments  PayrollPayment[]           @relation("DisbursedPayrollPayments")
+  approvedPayrollPayments   PayrollPayment[]           @relation("ApprovedPayrollPayments")
+  verifiedStudentAttendances   StudentAttendance[]        @relation("VerifiedStudentAttendances")
+  verifiedEmployeeAttendances  EmployeeAttendance[]       @relation("VerifiedEmployeeAttendances")
+  attendanceCorrections        AttendanceCorrection[]
+  notificationPreferences      NotificationPreference[]
+  communicationCampaigns       CommunicationCampaign[]
+  actedNotifications           Notification[]             @relation("NotificationActor")
+  recordedBoardingEvents       TransportBoardingEvent[]   @relation("RecordedBoardingEvents")
+  issuedLoans                  LibraryLoan[]              @relation("IssuedLoans")
+  returnedLoans                LibraryLoan[]              @relation("ReturnedLoans")
+  assessedLibraryFines         LibraryFine[]              @relation("AssessedLibraryFines")
+  waivedLibraryFines           LibraryFine[]              @relation("WaivedLibraryFines")
+  createdPurchases             InventoryPurchase[]        @relation("CreatedPurchases")
+  createdStockMovements        StockMovement[]            @relation("CreatedStockMovements")
+  initiatedTransfers           InventoryTransfer[]        @relation("InitiatedTransfers")
+  disposedAssets               Asset[]                    @relation("DisposedAssets")
+  assignedAssets               AssetAssignment[]          @relation("AssignedAssets")
+  createdAssetMaintenance      AssetMaintenanceLog[]      @relation("CreatedAssetMaintenance")
+  savedReports                 SavedReport[]
+  reportExportLogs             ReportExportLog[]
 
   @@unique([id, schoolId])
   @@unique([schoolId, phone])
@@ -2095,45 +2517,58 @@ model Certificate {
 // ============================================================================
 
 model Notification {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  schoolId  String    @db.Uuid
-  userId    String    @db.Uuid
-  title     String    @db.VarChar(255)
-  message   String    @db.Text
-  linkUrl   String?   @db.VarChar(500)
-  isRead    Boolean   @default(false)
-  readAt    DateTime? @db.Timestamptz()
-  createdAt DateTime  @default(now()) @db.Timestamptz()
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId  String      @db.Uuid
+  userId    String      @db.Uuid
+  title     String      @db.VarChar(255)
+  message   String      @db.Text
+  linkUrl   String?     @db.VarChar(500)
+  isRead    Boolean     @default(false)
+  readAt    DateTime?   @db.Timestamptz()
+  type      MessageType @default(GENERAL_NOTICE)
+  metadata  Json        @default("{}")
+  actorId   String?     @db.Uuid
+  createdAt DateTime    @default(now()) @db.Timestamptz()
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actor  User?  @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([userId, isRead, createdAt])
   @@map("notifications")
 }
 
 model MessageLog {
-  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  schoolId          String         @db.Uuid
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId          String                 @db.Uuid
   channel           MessageChannel
-  recipientPhone    String?        @db.VarChar(30)
-  recipientEmail    String?        @db.VarChar(255)
-  studentId         String?        @db.Uuid
-  guardianId        String?        @db.Uuid
-  messageBody       String         @db.Text
+  recipientPhone    String?                @db.VarChar(30)
+  recipientEmail    String?                @db.VarChar(255)
+  studentId         String?                @db.Uuid
+  guardianId        String?                @db.Uuid
+  messageBody       String                 @db.Text
   messageType       MessageType
-  smsCount          Int            @default(1)
-  provider          String         @db.VarChar(50)
-  providerMessageId String?        @db.VarChar(100)
-  deliveryStatus    DeliveryStatus @default(QUEUED)
-  failureReason     String?        @db.Text
-  sentAt            DateTime?      @db.Timestamptz()
-  createdAt         DateTime       @default(now()) @db.Timestamptz()
+  smsCount          Int                    @default(1)
+  provider          String                 @db.VarChar(50)
+  providerMessageId String?                @db.VarChar(100)
+  deliveryStatus    DeliveryStatus         @default(QUEUED)
+  failureReason     String?                @db.Text
+  sentAt            DateTime?              @db.Timestamptz()
+  campaignId        String?                @db.Uuid
+  templateId        String?                @db.Uuid
+  idempotencyKey    String?                @db.VarChar(120)
+  metadata          Json                   @default("{}")
+  retryCount        Int                    @default(0)
+  lastRetryAt       DateTime?              @db.Timestamptz()
+  createdAt         DateTime               @default(now()) @db.Timestamptz()
 
-  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student  Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
-  guardian Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  school   School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student?               @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  guardian Guardian?              @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  campaign CommunicationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  template NotificationTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
+  @@unique([schoolId, idempotencyKey])
   @@index([schoolId, channel, deliveryStatus])
   @@index([studentId])
   @@map("message_logs")
@@ -2150,8 +2585,10 @@ model NotificationTemplate {
   variables  Json           @default("[]")
   status     RecordStatus   @default(ACTIVE)
 
-  school          School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  automationRules AutomationRule[]
+  school                 School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  automationRules        AutomationRule[]
+  communicationCampaigns CommunicationCampaign[]
+  messageLogs            MessageLog[]
 
   @@unique([schoolId, code])
   @@map("notification_templates")
@@ -2194,22 +2631,196 @@ model IntegrationConfig {
 }
 
 model BiometricDevice {
-  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  schoolId        String              @db.Uuid
-  campusId        String?             @db.Uuid
-  deviceName      String              @db.VarChar(100)
-  deviceSerial    String              @db.VarChar(100)
-  deviceIp        String?             @db.VarChar(50)
-  deviceModel     String?             @db.VarChar(100)
-  deviceType      BiometricDeviceType
-  lastHeartbeatAt DateTime?           @db.Timestamptz()
-  status          DeviceStatus        @default(ONLINE)
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId             String              @db.Uuid
+  campusId             String?             @db.Uuid
+  deviceName           String              @db.VarChar(100)
+  deviceSerial         String              @db.VarChar(100)
+  deviceIp             String?             @db.VarChar(50)
+  deviceModel          String?             @db.VarChar(100)
+  deviceType           BiometricDeviceType
+  lastHeartbeatAt      DateTime?           @db.Timestamptz()
+  status               DeviceStatus        @default(ONLINE)
+  provider             String              @default("ZKTECO") @db.VarChar(50)
+  credentialsEncrypted String?             @db.Text
+  apiKeyHash           String?             @db.VarChar(128)
+  port                 Int?
+  location             String?             @db.VarChar(255)
+  settings             Json                @default("{}")
+  syncMode             String              @default("REALTIME") @db.VarChar(50)
+  lastSyncAt           DateTime?           @db.Timestamptz()
+  createdAt            DateTime            @default(now()) @db.Timestamptz()
+  updatedAt            DateTime            @default(now()) @updatedAt @db.Timestamptz()
 
-  school School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  campus Campus? @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  campus              Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  rawEvents           RawAttendanceEvent[]
+  studentAttendances  StudentAttendance[]
+  employeeAttendances EmployeeAttendance[]
 
+  @@unique([id, schoolId])
   @@unique([schoolId, deviceSerial])
   @@map("biometric_devices")
+}
+
+model RawAttendanceEvent {
+  id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId           String                @db.Uuid
+  deviceId           String?               @db.Uuid
+  externalEventId    String?               @db.VarChar(150)
+  deviceTimestamp    DateTime              @db.Timestamptz()
+  receivedAt         DateTime              @default(now()) @db.Timestamptz()
+  identifierType     String                @db.VarChar(50)
+  identifierValue    String                @db.VarChar(100)
+  eventType          String                @default("CHECK_IN") @db.VarChar(50)
+  processingStatus   EventProcessingStatus @default(PENDING)
+  resolvedUserType   String?               @db.VarChar(50)
+  resolvedStudentId  String?               @db.Uuid
+  resolvedEmployeeId String?               @db.Uuid
+  attendanceRecordId String?               @db.Uuid
+  rawPayload         Json                  @default("{}")
+  errorMessage       String?               @db.Text
+  processedAt        DateTime?             @db.Timestamptz()
+
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  device              BiometricDevice?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  resolvedStudent     Student?             @relation(fields: [resolvedStudentId], references: [id], onDelete: SetNull)
+  resolvedEmployee    Employee?            @relation(fields: [resolvedEmployeeId], references: [id], onDelete: SetNull)
+  studentAttendances  StudentAttendance[]
+  employeeAttendances EmployeeAttendance[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, deviceId, externalEventId])
+  @@index([schoolId, deviceTimestamp])
+  @@index([schoolId, identifierType, identifierValue])
+  @@index([schoolId, processingStatus])
+  @@map("raw_attendance_events")
+}
+
+model AttendanceRule {
+  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId                String         @db.Uuid
+  campusId                String?        @db.Uuid
+  name                    String         @db.VarChar(100)
+  targetType              String         @default("STUDENT") @db.VarChar(50)
+  shift                   AcademicShift?
+  startTime               DateTime       @default(dbgenerated("'08:00:00'::time")) @db.Time()
+  lateThresholdMinutes    Int            @default(15)
+  halfDayThresholdMinutes Int            @default(120)
+  endTime                 DateTime       @default(dbgenerated("'14:00:00'::time")) @db.Time()
+  earlyCheckoutMinutes    Int            @default(30)
+  workingDays             Json           @default("[\"SUNDAY\",\"MONDAY\",\"TUESDAY\",\"WEDNESDAY\",\"THURSDAY\"]")
+  gracePeriodMinutes      Int            @default(5)
+  checkoutRequired        Boolean        @default(false)
+  isDefault               Boolean        @default(false)
+  isActive                Boolean        @default(true)
+  createdAt               DateTime       @default(now()) @db.Timestamptz()
+  updatedAt               DateTime       @default(now()) @updatedAt @db.Timestamptz()
+
+  school School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  campus Campus? @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@map("attendance_rules")
+}
+
+model EmployeeShift {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String               @db.Uuid
+  nameEn              String               @db.VarChar(100)
+  nameBn              String               @db.VarChar(100)
+  code                String               @db.VarChar(50)
+  startTime           DateTime             @db.Time()
+  endTime             DateTime             @db.Time()
+  lateGraceMinutes    Int                  @default(15)
+  halfDayLateMinutes  Int                  @default(120)
+  workingDays         Json                 @default("[\"SUNDAY\",\"MONDAY\",\"TUESDAY\",\"WEDNESDAY\",\"THURSDAY\"]")
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now()) @db.Timestamptz()
+  updatedAt           DateTime             @default(now()) @updatedAt @db.Timestamptz()
+
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  employeeAttendances EmployeeAttendance[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, code])
+  @@map("employee_shifts")
+}
+
+model AttendanceCorrection {
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId             String              @db.Uuid
+  attendanceType       String              @db.VarChar(50)
+  studentAttendanceId  String?             @db.Uuid
+  employeeAttendanceId String?             @db.Uuid
+  originalStatus       AttendanceStatus
+  correctedStatus      AttendanceStatus
+  originalCheckIn      DateTime?           @db.Time()
+  correctedCheckIn     DateTime?           @db.Time()
+  originalCheckOut     DateTime?           @db.Time()
+  correctedCheckOut    DateTime?           @db.Time()
+  actionById           String              @db.Uuid
+  actionReason         String              @db.Text
+  createdAt            DateTime            @default(now()) @db.Timestamptz()
+
+  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentAttendance  StudentAttendance?  @relation(fields: [studentAttendanceId], references: [id], onDelete: Cascade)
+  employeeAttendance EmployeeAttendance? @relation(fields: [employeeAttendanceId], references: [id], onDelete: Cascade)
+  actionBy           User                @relation(fields: [actionById], references: [id], onDelete: Restrict)
+
+  @@unique([id, schoolId])
+  @@map("attendance_corrections")
+}
+
+model CommunicationCampaign {
+  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String                @db.Uuid
+  name            String                @db.VarChar(150)
+  channel         MessageChannel
+  targetAudience  String                @db.VarChar(50)
+  targetFilter    Json                  @default("{}")
+  templateId      String?               @db.Uuid
+  customBody      String?               @db.Text
+  totalRecipients Int                   @default(0)
+  sentCount       Int                   @default(0)
+  failedCount     Int                   @default(0)
+  status          String                @default("QUEUED") @db.VarChar(50)
+  idempotencyKey  String?               @db.VarChar(100)
+  createdById     String                @db.Uuid
+  createdAt       DateTime              @default(now()) @db.Timestamptz()
+  completedAt     DateTime?             @db.Timestamptz()
+
+  school      School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  template    NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdBy   User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  messageLogs MessageLog[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, idempotencyKey])
+  @@map("communication_campaigns")
+}
+
+model NotificationPreference {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId         String   @db.Uuid
+  userId           String   @db.Uuid
+  inAppEnabled     Boolean  @default(true)
+  smsEnabled       Boolean  @default(true)
+  emailEnabled     Boolean  @default(true)
+  whatsappEnabled  Boolean  @default(true)
+  attendanceAlerts Boolean  @default(true)
+  feeAlerts        Boolean  @default(true)
+  examAlerts       Boolean  @default(true)
+  generalNotices   Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz()
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz()
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, userId])
+  @@map("notification_preferences")
 }
 
 // ============================================================================
@@ -2306,3 +2917,1391 @@ model UsageEvent {
   @@index([schoolId, eventType, recordedAt])
   @@map("usage_events")
 }
+
+// ============================================================================
+// DOMAIN 12: PORTAL IDENTITY & INVITATIONS
+// ============================================================================
+
+model StudentUser {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId  String   @db.Uuid
+  studentId String   @unique @db.Uuid
+  userId    String   @unique @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz()
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([userId])
+  @@map("student_users")
+}
+
+model AccountInvitation {
+  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId         String               @db.Uuid
+  targetType       InvitationTargetType
+  guardianId       String?              @db.Uuid
+  studentId        String?              @db.Uuid
+  tokenHash        String               @unique @db.VarChar(64)
+  recipientPhone   String               @db.VarChar(30)
+  recipientEmail   String?              @db.VarChar(255)
+  status           InvitationStatus     @default(PENDING)
+  expiresAt        DateTime             @db.Timestamptz()
+  acceptedAt       DateTime?            @db.Timestamptz()
+  acceptedByUserId String?              @db.Uuid
+  createdById      String               @db.Uuid
+  createdAt        DateTime             @default(now()) @db.Timestamptz()
+  updatedAt        DateTime             @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  guardian       Guardian? @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  student        Student?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  acceptedByUser User?     @relation("AcceptedInvitations", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+  createdByUser  User      @relation("CreatedInvitations", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([id, schoolId])
+  @@index([tokenHash])
+  @@index([schoolId, status])
+  @@index([guardianId])
+  @@index([studentId])
+  @@map("account_invitations")
+}
+
+// ============================================================================
+// DOMAIN 17: HR, STAFF & PAYROLL ENGINE
+// ============================================================================
+
+model Department {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String       @db.Uuid
+  code        String       @db.VarChar(50)
+  nameEn      String       @db.VarChar(100)
+  nameBn      String       @db.VarChar(100)
+  description String?      @db.Text
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @db.Timestamptz()
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  designations   Designation[]
+  employees      Employee[]
+  payrollRecords PayrollRecord[]
+
+  @@unique([schoolId, code])
+  @@unique([id, schoolId])
+  @@map("departments")
+}
+
+model Designation {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId     String       @db.Uuid
+  departmentId String?      @db.Uuid
+  code         String       @db.VarChar(50)
+  titleEn      String       @db.VarChar(100)
+  titleBn      String       @db.VarChar(100)
+  status       RecordStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @db.Timestamptz()
+  updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  department     Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  employees      Employee[]
+  payrollRecords PayrollRecord[]
+
+  @@unique([schoolId, code])
+  @@unique([id, schoolId])
+  @@map("designations")
+}
+
+model Employee {
+  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId              String         @db.Uuid
+  campusId              String?        @db.Uuid
+  userId                String?        @unique @db.Uuid
+  teacherId             String?        @unique @db.Uuid
+  employeeCode          String         @db.VarChar(50)
+  firstNameEn           String         @db.VarChar(100)
+  lastNameEn            String         @db.VarChar(100)
+  fullNameEn            String         @db.VarChar(200)
+  fullNameBn            String         @db.VarChar(200)
+  departmentId          String         @db.Uuid
+  designationId         String         @db.Uuid
+  employmentType        EmploymentType @default(PERMANENT)
+  status                EmployeeStatus @default(ACTIVE)
+  dateOfBirth           DateTime       @db.Date
+  gender                Gender
+  bloodGroup            BloodGroup?
+  nationalId            String         @db.VarChar(50)
+  birthRegistrationNo   String?        @db.VarChar(50)
+  phone                 String         @db.VarChar(30)
+  email                 String?        @db.VarChar(255)
+  presentAddress        String?        @db.Text
+  permanentAddress      String?        @db.Text
+  emergencyContactName  String?        @db.VarChar(150)
+  emergencyContactPhone String?        @db.VarChar(30)
+  emergencyContactRelation String?     @db.VarChar(50)
+  joiningDate           DateTime       @db.Date
+  confirmationDate      DateTime?      @db.Date
+  terminationDate       DateTime?      @db.Date
+  terminationReason     String?        @db.Text
+  bankName              String?        @db.VarChar(100)
+  bankAccountNo         String?        @db.VarChar(100)
+  bankRoutingNo         String?        @db.VarChar(50)
+  mfsProvider           String?        @db.VarChar(50)
+  mfsNumber             String?        @db.VarChar(30)
+  createdAt             DateTime       @default(now()) @db.Timestamptz()
+  updatedAt             DateTime       @default(now()) @updatedAt @db.Timestamptz()
+  deletedAt             DateTime?      @db.Timestamptz()
+
+  school              School                     @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  campus              Campus?                    @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  user                User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  teacher             Teacher?                   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  department          Department                 @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  designation         Designation                @relation(fields: [designationId], references: [id], onDelete: Restrict)
+  documents           EmployeeDocument[]
+  salaryAssignments   EmployeeSalaryAssignment[]
+  attendances         EmployeeAttendance[]
+  leaveBalances       LeaveBalance[]
+  leaveRequests       LeaveRequest[]
+  advances            SalaryAdvance[]
+  payrollRecords      PayrollRecord[]
+  payrollPayments     PayrollPayment[]
+  rawAttendanceEvents  RawAttendanceEvent[]
+  driverAssignments    VehicleDriverAssignment[] @relation("DriverAssignments")
+  conductorAssignments VehicleDriverAssignment[] @relation("ConductorAssignments")
+  driverTrips          TransportTrip[]           @relation("DriverTrips")
+  conductorTrips       TransportTrip[]           @relation("ConductorTrips")
+  libraryLoans         LibraryLoan[]
+  libraryReservations  LibraryReservation[]
+  libraryFines         LibraryFine[]
+  stockMovements       StockMovement[]
+  assignedAssets       Asset[]                   @relation("AssignedEmployee")
+  assetAssignments     AssetAssignment[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, employeeCode])
+  @@unique([schoolId, userId])
+  @@unique([schoolId, teacherId])
+  @@index([schoolId, departmentId])
+  @@index([schoolId, designationId])
+  @@index([schoolId, status])
+  @@map("employees")
+}
+
+model EmployeeDocument {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId      String    @db.Uuid
+  employeeId    String    @db.Uuid
+  docType       String    @db.VarChar(50)
+  title         String    @db.VarChar(200)
+  fileUrl       String    @db.Text
+  fileSizeBytes BigInt    @default(0)
+  mimeType      String    @db.VarChar(100)
+  verifiedById  String?   @db.Uuid
+  verifiedAt    DateTime? @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @db.Timestamptz()
+
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  verifiedBy User?    @relation("VerifiedEmployeeDocs", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, employeeId])
+  @@map("employee_documents")
+}
+
+model SalaryComponent {
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId          String                  @db.Uuid
+  code              String                  @db.VarChar(50)
+  nameEn            String                  @db.VarChar(100)
+  nameBn            String                  @db.VarChar(100)
+  type              SalaryComponentType
+  calculationMethod SalaryCalculationMethod @default(FIXED)
+  defaultAmount     Decimal                 @default(0.00) @db.Decimal(12, 2)
+  percentageValue   Decimal?                @db.Decimal(5, 2)
+  formulaExpression String?                 @db.Text
+  isTaxable         Boolean                 @default(false)
+  isMandatory       Boolean                 @default(false)
+  status            RecordStatus            @default(ACTIVE)
+  createdAt         DateTime                @default(now()) @db.Timestamptz()
+  updatedAt         DateTime                @default(now()) @updatedAt @db.Timestamptz()
+
+  school              School                @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  structureItems      SalaryStructureItem[]
+  salaryItems         EmployeeSalaryItem[]
+  payrollItems        PayrollItem[]
+
+  @@unique([schoolId, code])
+  @@unique([id, schoolId])
+  @@map("salary_components")
+}
+
+model SalaryStructure {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String       @db.Uuid
+  code        String       @db.VarChar(50)
+  nameEn      String       @db.VarChar(150)
+  nameBn      String       @db.VarChar(150)
+  description String?      @db.Text
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @db.Timestamptz()
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school            School                     @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  items             SalaryStructureItem[]
+  salaryAssignments EmployeeSalaryAssignment[]
+
+  @@unique([schoolId, code])
+  @@unique([id, schoolId])
+  @@map("salary_structures")
+}
+
+model SalaryStructureItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String   @db.Uuid
+  structureId     String   @db.Uuid
+  componentId     String   @db.Uuid
+  amount          Decimal  @default(0.00) @db.Decimal(12, 2)
+  percentageValue Decimal? @db.Decimal(5, 2)
+
+  school    School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  structure SalaryStructure @relation(fields: [structureId], references: [id], onDelete: Cascade)
+  component SalaryComponent @relation(fields: [componentId], references: [id], onDelete: Restrict)
+
+  @@unique([structureId, componentId])
+  @@map("salary_structure_items")
+}
+
+model EmployeeSalaryAssignment {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId           String       @db.Uuid
+  employeeId         String       @db.Uuid
+  structureId        String?      @db.Uuid
+  version            Int          @default(1)
+  effectiveFrom      DateTime     @db.Date
+  effectiveTo        DateTime?    @db.Date
+  baseSalary         Decimal      @db.Decimal(12, 2)
+  grossSalary        Decimal      @db.Decimal(12, 2)
+  netEstimatedSalary Decimal      @db.Decimal(12, 2)
+  status             RecordStatus @default(ACTIVE)
+  approvedById       String       @db.Uuid
+  approvedAt         DateTime?    @db.Timestamptz()
+  createdAt          DateTime     @default(now()) @db.Timestamptz()
+  updatedAt          DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School               @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  employee       Employee             @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  structure      SalaryStructure?     @relation(fields: [structureId], references: [id], onDelete: SetNull)
+  approvedBy     User                 @relation("ApprovedSalaryAssignments", fields: [approvedById], references: [id], onDelete: Restrict)
+  items          EmployeeSalaryItem[]
+  payrollRecords PayrollRecord[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, employeeId, version])
+  @@index([schoolId, employeeId, effectiveFrom])
+  @@map("employee_salary_assignments")
+}
+
+model EmployeeSalaryItem {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String   @db.Uuid
+  assignmentId        String   @db.Uuid
+  componentId         String   @db.Uuid
+  amount              Decimal  @db.Decimal(12, 2)
+  calculationSnapshot Json     @default("{}")
+
+  school     School                   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  assignment EmployeeSalaryAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  component  SalaryComponent          @relation(fields: [componentId], references: [id], onDelete: Restrict)
+
+  @@unique([assignmentId, componentId])
+  @@map("employee_salary_items")
+}
+
+model LeaveType {
+  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId          String       @db.Uuid
+  code              String       @db.VarChar(50)
+  nameEn            String       @db.VarChar(100)
+  nameBn            String       @db.VarChar(100)
+  annualDays        Int          @default(10)
+  isPaid            Boolean      @default(true)
+  allowCarryForward Boolean      @default(false)
+  status            RecordStatus @default(ACTIVE)
+  createdAt         DateTime     @default(now()) @db.Timestamptz()
+
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  leaveBalances LeaveBalance[]
+  leaveRequests LeaveRequest[]
+
+  @@unique([schoolId, code])
+  @@unique([id, schoolId])
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId      String   @db.Uuid
+  employeeId    String   @db.Uuid
+  leaveTypeId   String   @db.Uuid
+  year          Int
+  allocatedDays Decimal  @default(0.0) @db.Decimal(5, 1)
+  usedDays      Decimal  @default(0.0) @db.Decimal(5, 1)
+  pendingDays   Decimal  @default(0.0) @db.Decimal(5, 1)
+  remainingDays Decimal  @default(0.0) @db.Decimal(5, 1)
+  createdAt     DateTime @default(now()) @db.Timestamptz()
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz()
+
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([schoolId, employeeId, leaveTypeId, year])
+  @@unique([id, schoolId])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId     String             @db.Uuid
+  employeeId   String             @db.Uuid
+  leaveTypeId  String             @db.Uuid
+  startDate    DateTime           @db.Date
+  endDate      DateTime           @db.Date
+  totalDays    Decimal            @db.Decimal(5, 1)
+  reason       String             @db.Text
+  status       LeaveRequestStatus @default(PENDING)
+  appliedAt    DateTime           @default(now()) @db.Timestamptz()
+  actionedById String?            @db.Uuid
+  actionedAt   DateTime?          @db.Timestamptz()
+  actionReason String?            @db.Text
+
+  school     School    @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  leaveType  LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  actionedBy User?     @relation("ActionedLeaveRequests", fields: [actionedById], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, employeeId, status])
+  @@map("leave_requests")
+}
+
+model SalaryAdvance {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId           String        @db.Uuid
+  advanceNumber      String        @db.VarChar(50)
+  employeeId         String        @db.Uuid
+  requestedAmount    Decimal       @db.Decimal(12, 2)
+  approvedAmount     Decimal       @db.Decimal(12, 2)
+  monthlyDeduction   Decimal       @db.Decimal(12, 2)
+  totalRecovered     Decimal       @default(0.00) @db.Decimal(12, 2)
+  balanceRemaining   Decimal       @db.Decimal(12, 2)
+  reason             String?       @db.Text
+  status             AdvanceStatus @default(PENDING)
+  disbursedAt        DateTime?     @db.Timestamptz()
+  disbursementMethod PaymentMethod?
+  approvedById       String?       @db.Uuid
+  approvedAt         DateTime?     @db.Timestamptz()
+  createdAt          DateTime      @default(now()) @db.Timestamptz()
+  updatedAt          DateTime      @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School                 @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  employee       Employee               @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  approvedBy     User?                  @relation("ApprovedSalaryAdvances", fields: [approvedById], references: [id], onDelete: SetNull)
+  repaymentLogs  AdvanceRepaymentLog[]
+
+  @@unique([schoolId, advanceNumber])
+  @@unique([id, schoolId])
+  @@index([schoolId, employeeId, status])
+  @@map("salary_advances")
+}
+
+model AdvanceRepaymentLog {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String   @db.Uuid
+  advanceId       String   @db.Uuid
+  payrollRecordId String?  @db.Uuid
+  amount          Decimal  @db.Decimal(12, 2)
+  repaymentDate   DateTime @db.Date
+  balanceAfter    Decimal  @db.Decimal(12, 2)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @db.Timestamptz()
+
+  school  School        @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  advance SalaryAdvance @relation(fields: [advanceId], references: [id], onDelete: Restrict)
+
+  @@index([schoolId, advanceId])
+  @@map("advance_repayment_logs")
+}
+
+model PayrollPeriod {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId       String              @db.Uuid
+  periodKey      String              @db.VarChar(20)
+  nameEn         String              @db.VarChar(100)
+  nameBn         String              @db.VarChar(100)
+  startDate      DateTime            @db.Date
+  endDate        DateTime            @db.Date
+  paymentDueDate DateTime?           @db.Date
+  status         PayrollPeriodStatus @default(DRAFT)
+  totalGross     Decimal             @default(0.00) @db.Decimal(12, 2)
+  totalDeductions Decimal            @default(0.00) @db.Decimal(12, 2)
+  totalNet       Decimal             @default(0.00) @db.Decimal(12, 2)
+  totalPaid      Decimal             @default(0.00) @db.Decimal(12, 2)
+  employeeCount  Int                 @default(0)
+  finalizedById  String?             @db.Uuid
+  finalizedAt    DateTime?           @db.Timestamptz()
+  closedAt       DateTime?           @db.Timestamptz()
+  createdAt      DateTime            @default(now()) @db.Timestamptz()
+  updatedAt      DateTime            @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  finalizedBy    User?           @relation("FinalizedPayrollPeriods", fields: [finalizedById], references: [id], onDelete: SetNull)
+  payrollRecords PayrollRecord[]
+
+  @@unique([schoolId, periodKey])
+  @@unique([id, schoolId])
+  @@map("payroll_periods")
+}
+
+model PayrollRecord {
+  id                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId              String              @db.Uuid
+  periodId              String              @db.Uuid
+  employeeId            String              @db.Uuid
+  salaryAssignmentId    String              @db.Uuid
+  payslipNumber         String              @db.VarChar(50)
+  campusId              String?             @db.Uuid
+  departmentId          String              @db.Uuid
+  designationId         String              @db.Uuid
+  employmentType        EmploymentType
+  basicSalary           Decimal             @db.Decimal(12, 2)
+  grossEarnings         Decimal             @db.Decimal(12, 2)
+  totalDeductions       Decimal             @db.Decimal(12, 2)
+  advanceRecoveryAmount Decimal             @default(0.00) @db.Decimal(12, 2)
+  netSalary             Decimal             @db.Decimal(12, 2)
+  paidAmount            Decimal             @default(0.00) @db.Decimal(12, 2)
+  dueSalary             Decimal             @db.Decimal(12, 2)
+  totalWorkingDays      Int                 @default(30)
+  presentDays           Int                 @default(0)
+  absentDays            Int                 @default(0)
+  lateDays              Int                 @default(0)
+  leaveDays             Int                 @default(0)
+  unpaidLeaveDays       Int                 @default(0)
+  overtimeHours         Decimal             @default(0.00) @db.Decimal(6, 2)
+  overtimeAmount        Decimal             @default(0.00) @db.Decimal(12, 2)
+  status                PayrollRecordStatus @default(DRAFT)
+  calculationSnapshot   Json                @default("{}")
+  notes                 String?             @db.Text
+  generatedById         String              @db.Uuid
+  generatedAt           DateTime            @default(now()) @db.Timestamptz()
+  finalizedById         String?             @db.Uuid
+  finalizedAt           DateTime?           @db.Timestamptz()
+  createdAt             DateTime            @default(now()) @db.Timestamptz()
+  updatedAt             DateTime            @default(now()) @updatedAt @db.Timestamptz()
+
+  school           School                   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  period           PayrollPeriod            @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  employee         Employee                 @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  salaryAssignment EmployeeSalaryAssignment @relation(fields: [salaryAssignmentId], references: [id], onDelete: Restrict)
+  campus           Campus?                  @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  department       Department               @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  designation      Designation              @relation(fields: [designationId], references: [id], onDelete: Restrict)
+  generatedBy      User                     @relation("GeneratedPayrollRecords", fields: [generatedById], references: [id], onDelete: Restrict)
+  finalizedBy      User?                    @relation("FinalizedPayrollRecords", fields: [finalizedById], references: [id], onDelete: SetNull)
+  items            PayrollItem[]
+  payments         PayrollPayment[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, periodId, employeeId])
+  @@unique([schoolId, payslipNumber])
+  @@index([schoolId, employeeId, periodId])
+  @@index([schoolId, status])
+  @@map("payroll_records")
+}
+
+model PayrollItem {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String              @db.Uuid
+  payrollRecordId String              @db.Uuid
+  componentId     String?             @db.Uuid
+  code            String              @db.VarChar(50)
+  nameEn          String              @db.VarChar(100)
+  nameBn          String              @db.VarChar(100)
+  type            SalaryComponentType
+  amount          Decimal             @db.Decimal(12, 2)
+  isTaxable       Boolean             @default(false)
+  notes           String?             @db.VarChar(255)
+
+  school        School           @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  payrollRecord PayrollRecord    @relation(fields: [payrollRecordId], references: [id], onDelete: Cascade)
+  component     SalaryComponent? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+
+  @@unique([payrollRecordId, code])
+  @@map("payroll_items")
+}
+
+model PayrollPayment {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String               @db.Uuid
+  paymentNumber   String               @db.VarChar(50)
+  payrollRecordId String               @db.Uuid
+  employeeId      String               @db.Uuid
+  amount          Decimal              @db.Decimal(12, 2)
+  paymentMethod   PaymentMethod
+  paymentDate     DateTime             @db.Date
+  transactionRef  String?              @db.VarChar(100)
+  bankName        String?              @db.VarChar(100)
+  bankAccountNo   String?              @db.VarChar(100)
+  status          PayrollPaymentStatus @default(SUCCESS)
+  paidById        String               @db.Uuid
+  approvedById    String?              @db.Uuid
+  notes           String?              @db.Text
+  createdAt       DateTime             @default(now()) @db.Timestamptz()
+
+  school        School        @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  payrollRecord PayrollRecord @relation(fields: [payrollRecordId], references: [id], onDelete: Restrict)
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  paidBy        User          @relation("DisbursedPayrollPayments", fields: [paidById], references: [id], onDelete: Restrict)
+  approvedBy    User?         @relation("ApprovedPayrollPayments", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, paymentNumber])
+  @@index([schoolId, employeeId, paymentDate])
+  @@map("payroll_payments")
+}
+
+// ============================================================================
+// DOMAIN 13: SCHOOL OPERATIONS & TRANSPORT MANAGEMENT (PHASE 9)
+// ============================================================================
+
+model Vehicle {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId           String        @db.Uuid
+  campusId           String?       @db.Uuid
+  vehicleCode        String        @db.VarChar(50)
+  registrationNumber String        @db.VarChar(100)
+  vehicleType        VehicleType   @default(BUS)
+  makeModel          String?       @db.VarChar(100)
+  year               Int?
+  seatingCapacity    Int           @default(40)
+  status             VehicleStatus @default(ACTIVE)
+  insuranceExpiry    DateTime?     @db.Date
+  fitnessExpiry      DateTime?     @db.Date
+  registrationExpiry DateTime?     @db.Date
+  notes              String?       @db.Text
+  createdAt          DateTime      @default(now()) @db.Timestamptz()
+  updatedAt          DateTime      @default(now()) @updatedAt @db.Timestamptz()
+
+  school             School                      @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  campus             Campus?                     @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  driverAssignments  VehicleDriverAssignment[]
+  studentAssignments StudentTransportAssignment[]
+  trips              TransportTrip[]
+  maintenanceLogs    VehicleMaintenanceLog[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, vehicleCode])
+  @@unique([schoolId, registrationNumber])
+  @@index([schoolId, status])
+  @@index([schoolId, campusId])
+  @@map("vehicles")
+}
+
+model TransportRoute {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String       @db.Uuid
+  campusId    String?      @db.Uuid
+  routeCode   String       @db.VarChar(50)
+  routeName   String       @db.VarChar(150)
+  description String?      @db.Text
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @db.Timestamptz()
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school             School                      @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  campus             Campus?                     @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  stops              RouteStop[]
+  driverAssignments  VehicleDriverAssignment[]
+  studentAssignments StudentTransportAssignment[]
+  trips              TransportTrip[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, routeCode])
+  @@index([schoolId, status])
+  @@map("transport_routes")
+}
+
+model RouteStop {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId       String       @db.Uuid
+  routeId        String       @db.Uuid
+  stopName       String       @db.VarChar(150)
+  address        String?      @db.Text
+  latitude       Decimal?     @db.Decimal(10, 7)
+  longitude      Decimal?     @db.Decimal(10, 7)
+  sequenceNumber Int
+  pickupTime     String?      @db.VarChar(20)
+  dropoffTime    String?      @db.VarChar(20)
+  fareAmount     Decimal      @default(0.00) @db.Decimal(12, 2)
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @db.Timestamptz()
+  updatedAt      DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school             School                      @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  route              TransportRoute              @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  pickupAssignments  StudentTransportAssignment[] @relation("PickupStop")
+  dropoffAssignments StudentTransportAssignment[] @relation("DropoffStop")
+  boardingEvents     TransportBoardingEvent[]
+
+  @@unique([id, schoolId])
+  @@unique([routeId, sequenceNumber])
+  @@index([schoolId])
+  @@map("route_stops")
+}
+
+model VehicleDriverAssignment {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String    @db.Uuid
+  vehicleId           String    @db.Uuid
+  driverEmployeeId    String    @db.Uuid
+  conductorEmployeeId String?   @db.Uuid
+  routeId             String?   @db.Uuid
+  effectiveFrom       DateTime  @db.Date
+  effectiveTo         DateTime? @db.Date
+  isActive            Boolean   @default(true)
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now()) @db.Timestamptz()
+  updatedAt           DateTime  @default(now()) @updatedAt @db.Timestamptz()
+
+  school    School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  vehicle   Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver    Employee        @relation("DriverAssignments", fields: [driverEmployeeId], references: [id], onDelete: Restrict)
+  conductor Employee?       @relation("ConductorAssignments", fields: [conductorEmployeeId], references: [id], onDelete: SetNull)
+  route     TransportRoute? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, vehicleId])
+  @@index([schoolId, driverEmployeeId])
+  @@map("vehicle_driver_assignments")
+}
+
+model StudentTransportAssignment {
+  id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String                    @db.Uuid
+  enrollmentId    String                    @db.Uuid
+  studentId       String                    @db.Uuid
+  routeId         String                    @db.Uuid
+  pickupStopId    String                    @db.Uuid
+  dropoffStopId   String                    @db.Uuid
+  vehicleId       String?                   @db.Uuid
+  feeStructureId  String?                   @db.Uuid
+  effectiveFrom   DateTime                  @db.Date
+  effectiveTo     DateTime?                 @db.Date
+  status          TransportAssignmentStatus @default(ACTIVE)
+  notes           String?                   @db.Text
+  createdAt       DateTime                  @default(now()) @db.Timestamptz()
+  updatedAt       DateTime                  @default(now()) @updatedAt @db.Timestamptz()
+
+  school       School         @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  enrollment   Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  student      Student        @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  route        TransportRoute @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  pickupStop   RouteStop      @relation("PickupStop", fields: [pickupStopId], references: [id], onDelete: Restrict)
+  dropoffStop  RouteStop      @relation("DropoffStop", fields: [dropoffStopId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  feeStructure FeeStructure?  @relation(fields: [feeStructureId], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, enrollmentId])
+  @@index([schoolId, studentId])
+  @@index([schoolId, vehicleId, status])
+  @@map("student_transport_assignments")
+}
+
+model TransportTrip {
+  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String     @db.Uuid
+  routeId             String     @db.Uuid
+  vehicleId           String     @db.Uuid
+  driverEmployeeId    String     @db.Uuid
+  conductorEmployeeId String?    @db.Uuid
+  tripDate            DateTime   @db.Date
+  tripType            TripType
+  status              TripStatus @default(PLANNED)
+  scheduledStartTime  String?    @db.VarChar(20)
+  scheduledEndTime    String?    @db.VarChar(20)
+  actualStartTime     DateTime?  @db.Timestamptz()
+  actualEndTime       DateTime?  @db.Timestamptz()
+  notes               String?    @db.Text
+  createdAt           DateTime   @default(now()) @db.Timestamptz()
+  updatedAt           DateTime   @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School                   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  route          TransportRoute           @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  vehicle        Vehicle                  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver         Employee                 @relation("DriverTrips", fields: [driverEmployeeId], references: [id], onDelete: Restrict)
+  conductor      Employee?                @relation("ConductorTrips", fields: [conductorEmployeeId], references: [id], onDelete: SetNull)
+  boardingEvents TransportBoardingEvent[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, routeId, vehicleId, tripDate, tripType])
+  @@index([schoolId, tripDate])
+  @@index([schoolId, driverEmployeeId])
+  @@map("transport_trips")
+}
+
+model TransportBoardingEvent {
+  id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId       String                  @db.Uuid
+  tripId         String                  @db.Uuid
+  studentId      String                  @db.Uuid
+  enrollmentId   String                  @db.Uuid
+  stopId         String                  @db.Uuid
+  boardingStatus TransportBoardingStatus
+  eventTimestamp DateTime                @default(now()) @db.Timestamptz()
+  source         BoardingEventSource     @default(MANUAL)
+  recordedById   String?                 @db.Uuid
+  notes          String?                 @db.Text
+  createdAt      DateTime                @default(now()) @db.Timestamptz()
+
+  school     School        @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  trip       TransportTrip @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  stop       RouteStop     @relation(fields: [stopId], references: [id], onDelete: Restrict)
+  recordedBy User?         @relation("RecordedBoardingEvents", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@unique([tripId, studentId, boardingStatus])
+  @@index([schoolId, tripId])
+  @@index([schoolId, studentId])
+  @@map("transport_boarding_events")
+}
+
+model VehicleMaintenanceLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String    @db.Uuid
+  vehicleId       String    @db.Uuid
+  maintenanceType String    @db.VarChar(100)
+  serviceDate     DateTime  @db.Date
+  odometerReading Int?
+  cost            Decimal   @default(0.00) @db.Decimal(12, 2)
+  vendorName      String?   @db.VarChar(150)
+  invoiceRef      String?   @db.VarChar(100)
+  nextServiceDate DateTime? @db.Date
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @db.Timestamptz()
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, vehicleId])
+  @@index([schoolId, serviceDate])
+  @@map("vehicle_maintenance_logs")
+}
+
+// ============================================================================
+// DOMAIN 19: LIBRARY MANAGEMENT (PHASE 10)
+// ============================================================================
+
+model LibrarySetting {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId                  String   @unique @db.Uuid
+  studentMaxBooks           Int      @default(3)
+  studentLoanPeriodDays     Int      @default(14)
+  studentMaxRenewals        Int      @default(2)
+  employeeMaxBooks          Int      @default(10)
+  employeeLoanPeriodDays    Int      @default(30)
+  employeeMaxRenewals       Int      @default(3)
+  dailyFineRate             Decimal  @default(5.00) @db.Decimal(12, 2)
+  lostBookChargeMultiplier  Decimal  @default(1.00) @db.Decimal(5, 2)
+  damageFineFlat            Decimal  @default(0.00) @db.Decimal(12, 2)
+  blockedThresholdFine      Decimal  @default(500.00) @db.Decimal(12, 2)
+  allowStudentReservations  Boolean  @default(true)
+  allowEmployeeReservations Boolean  @default(true)
+  reservationValidityDays   Int      @default(7)
+  autoBillToStudentAccount  Boolean  @default(false)
+  createdAt                 DateTime @default(now()) @db.Timestamptz()
+  updatedAt                 DateTime @default(now()) @updatedAt @db.Timestamptz()
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@map("library_settings")
+}
+
+model LibraryCategory {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String       @db.Uuid
+  code        String       @db.VarChar(50)
+  nameEn      String       @db.VarChar(100)
+  nameBn      String       @db.VarChar(100)
+  description String?      @db.Text
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @db.Timestamptz()
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  books  LibraryBook[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, code])
+  @@index([schoolId, status])
+  @@map("library_categories")
+}
+
+model LibraryAuthor {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId  String       @db.Uuid
+  nameEn    String       @db.VarChar(150)
+  nameBn    String?      @db.VarChar(150)
+  bio       String?      @db.Text
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @db.Timestamptz()
+  updatedAt DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  books  LibraryBook[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, nameEn])
+  @@index([schoolId, status])
+  @@map("library_authors")
+}
+
+model LibraryPublisher {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId     String       @db.Uuid
+  nameEn       String       @db.VarChar(150)
+  nameBn       String?      @db.VarChar(150)
+  address      String?      @db.Text
+  contactPhone String?      @db.VarChar(50)
+  status       RecordStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @db.Timestamptz()
+  updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  books  LibraryBook[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, nameEn])
+  @@index([schoolId, status])
+  @@map("library_publishers")
+}
+
+model LibraryBook {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String       @db.Uuid
+  categoryId      String?      @db.Uuid
+  authorId        String?      @db.Uuid
+  publisherId     String?      @db.Uuid
+  titleEn         String       @db.VarChar(255)
+  titleBn         String?      @db.VarChar(255)
+  subtitle        String?      @db.VarChar(255)
+  isbn10          String?      @db.VarChar(20)
+  isbn13          String?      @db.VarChar(20)
+  edition         String?      @db.VarChar(50)
+  publicationYear Int?
+  language        String       @default("English") @db.VarChar(50)
+  description     String?      @db.Text
+  coverUrl        String?      @db.Text
+  status          RecordStatus @default(ACTIVE)
+  createdAt       DateTime     @default(now()) @db.Timestamptz()
+  updatedAt       DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school       School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  category     LibraryCategory?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  author       LibraryAuthor?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  publisher    LibraryPublisher?    @relation(fields: [publisherId], references: [id], onDelete: SetNull)
+  copies       LibraryBookCopy[]
+  reservations LibraryReservation[]
+
+  @@unique([id, schoolId])
+  @@index([schoolId, status])
+  @@index([schoolId, categoryId])
+  @@index([schoolId, authorId])
+  @@map("library_books")
+}
+
+model LibraryBookCopy {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String         @db.Uuid
+  bookId          String         @db.Uuid
+  campusId        String?        @db.Uuid
+  accessionNumber String         @db.VarChar(100)
+  barcode         String         @db.VarChar(100)
+  shelfRack       String?        @db.VarChar(100)
+  acquisitionDate DateTime       @default(now()) @db.Date
+  acquisitionCost Decimal        @default(0.00) @db.Decimal(12, 2)
+  condition       BookCondition  @default(NEW)
+  status          BookCopyStatus @default(AVAILABLE)
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now()) @db.Timestamptz()
+  updatedAt       DateTime       @default(now()) @updatedAt @db.Timestamptz()
+
+  school                School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  book                  LibraryBook          @relation(fields: [bookId], references: [id], onDelete: Restrict)
+  campus                Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  loans                 LibraryLoan[]
+  fulfilledReservations LibraryReservation[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, accessionNumber])
+  @@unique([schoolId, barcode])
+  @@index([schoolId, bookId])
+  @@index([schoolId, status])
+  @@index([schoolId, campusId])
+  @@map("library_book_copies")
+}
+
+model LibraryLoan {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId      String       @db.Uuid
+  copyId        String       @db.Uuid
+  borrowerType  BorrowerType
+  studentId     String?      @db.Uuid
+  enrollmentId  String?      @db.Uuid
+  employeeId    String?      @db.Uuid
+  issueDate     DateTime     @default(now()) @db.Timestamptz()
+  dueDate       DateTime     @db.Timestamptz()
+  returnDate    DateTime?    @db.Timestamptz()
+  issuedById    String       @db.Uuid
+  returnedById  String?      @db.Uuid
+  renewalCount  Int          @default(0)
+  lastRenewedAt DateTime?    @db.Timestamptz()
+  status        LoanStatus   @default(ISSUED)
+  notes         String?      @db.Text
+  createdAt     DateTime     @default(now()) @db.Timestamptz()
+  updatedAt     DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school     School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  copy       LibraryBookCopy @relation(fields: [copyId], references: [id], onDelete: Restrict)
+  student    Student?        @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment Enrollment?     @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  employee   Employee?       @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  issuedBy   User            @relation("IssuedLoans", fields: [issuedById], references: [id], onDelete: Restrict)
+  returnedBy User?           @relation("ReturnedLoans", fields: [returnedById], references: [id], onDelete: SetNull)
+  fines      LibraryFine[]
+
+  @@unique([id, schoolId])
+  @@index([schoolId, status])
+  @@index([schoolId, copyId])
+  @@index([schoolId, studentId])
+  @@index([schoolId, employeeId])
+  @@index([schoolId, dueDate])
+  @@map("library_loans")
+}
+
+model LibraryReservation {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId        String            @db.Uuid
+  bookId          String            @db.Uuid
+  borrowerType    BorrowerType
+  studentId       String?           @db.Uuid
+  employeeId      String?           @db.Uuid
+  reservationDate DateTime          @default(now()) @db.Timestamptz()
+  expiryDate      DateTime          @db.Timestamptz()
+  fulfilledDate   DateTime?         @db.Timestamptz()
+  fulfilledCopyId String?           @db.Uuid
+  status          ReservationStatus @default(PENDING)
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now()) @db.Timestamptz()
+  updatedAt       DateTime          @default(now()) @updatedAt @db.Timestamptz()
+
+  school        School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  book          LibraryBook      @relation(fields: [bookId], references: [id], onDelete: Restrict)
+  student       Student?         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  employee      Employee?        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  fulfilledCopy LibraryBookCopy? @relation(fields: [fulfilledCopyId], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, bookId, status])
+  @@index([schoolId, studentId])
+  @@index([schoolId, employeeId])
+  @@map("library_reservations")
+}
+
+model LibraryFine {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId         String            @db.Uuid
+  loanId           String?           @db.Uuid
+  borrowerType     BorrowerType
+  studentId        String?           @db.Uuid
+  employeeId       String?           @db.Uuid
+  fineType         LibraryFineType   @default(OVERDUE)
+  overdueDays      Int               @default(0)
+  dailyRate        Decimal           @default(0.00) @db.Decimal(12, 2)
+  calculatedAmount Decimal           @default(0.00) @db.Decimal(12, 2)
+  fineAmount       Decimal           @default(0.00) @db.Decimal(12, 2)
+  waivedAmount     Decimal           @default(0.00) @db.Decimal(12, 2)
+  paidAmount       Decimal           @default(0.00) @db.Decimal(12, 2)
+  status           LibraryFineStatus @default(UNPAID)
+  studentFeeId     String?           @db.Uuid
+  assessedById     String?           @db.Uuid
+  waivedById       String?           @db.Uuid
+  waivedReason     String?           @db.Text
+  notes            String?           @db.Text
+  createdAt        DateTime          @default(now()) @db.Timestamptz()
+  updatedAt        DateTime          @default(now()) @updatedAt @db.Timestamptz()
+
+  school     School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  loan       LibraryLoan? @relation(fields: [loanId], references: [id], onDelete: SetNull)
+  student    Student?     @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  employee   Employee?    @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  studentFee StudentFee?  @relation(fields: [studentFeeId], references: [id], onDelete: SetNull)
+  assessedBy User?        @relation("AssessedLibraryFines", fields: [assessedById], references: [id], onDelete: SetNull)
+  waivedBy   User?        @relation("WaivedLibraryFines", fields: [waivedById], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, status])
+  @@index([schoolId, loanId])
+  @@index([schoolId, studentId])
+  @@index([schoolId, employeeId])
+  @@map("library_fines")
+}
+
+// ============================================================================
+// DOMAIN 20: INVENTORY & ASSET MANAGEMENT (PHASE 10)
+// ============================================================================
+
+model InventoryCategory {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String            @db.Uuid
+  code        String            @db.VarChar(50)
+  nameEn      String            @db.VarChar(100)
+  nameBn      String            @db.VarChar(100)
+  itemType    InventoryItemType @default(CONSUMABLE)
+  description String?           @db.Text
+  status      RecordStatus      @default(ACTIVE)
+  createdAt   DateTime          @default(now()) @db.Timestamptz()
+  updatedAt   DateTime          @default(now()) @updatedAt @db.Timestamptz()
+
+  school School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  items  InventoryItem[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, code])
+  @@index([schoolId, status])
+  @@map("inventory_categories")
+}
+
+model InventoryItem {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId      String            @db.Uuid
+  categoryId    String            @db.Uuid
+  itemCode      String            @db.VarChar(50)
+  nameEn        String            @db.VarChar(150)
+  nameBn        String?           @db.VarChar(150)
+  itemType      InventoryItemType @default(CONSUMABLE)
+  stockUnit     StockUnit         @default(PCS)
+  minStockLevel Int               @default(0)
+  reorderLevel  Int               @default(0)
+  description   String?           @db.Text
+  status        RecordStatus      @default(ACTIVE)
+  createdAt     DateTime          @default(now()) @db.Timestamptz()
+  updatedAt     DateTime          @default(now()) @updatedAt @db.Timestamptz()
+
+  school         School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  category       InventoryCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  purchaseItems  InventoryPurchaseItem[]
+  stockMovements StockMovement[]
+  transfers      InventoryTransfer[]
+  assets         Asset[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, itemCode])
+  @@index([schoolId, status])
+  @@index([schoolId, categoryId])
+  @@map("inventory_items")
+}
+
+model InventorySupplier {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId      String       @db.Uuid
+  supplierCode  String       @db.VarChar(50)
+  name          String       @db.VarChar(150)
+  companyName   String?      @db.VarChar(150)
+  contactPerson String?      @db.VarChar(100)
+  phone         String?      @db.VarChar(50)
+  email         String?      @db.VarChar(100)
+  address       String?      @db.Text
+  status        RecordStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @db.Timestamptz()
+  updatedAt     DateTime     @default(now()) @updatedAt @db.Timestamptz()
+
+  school    School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  purchases InventoryPurchase[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, supplierCode])
+  @@index([schoolId, status])
+  @@map("inventory_suppliers")
+}
+
+model InventoryPurchase {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId       String         @db.Uuid
+  campusId       String?        @db.Uuid
+  supplierId     String         @db.Uuid
+  purchaseNumber String         @db.VarChar(50)
+  invoiceNumber  String?        @db.VarChar(100)
+  purchaseDate   DateTime       @db.Date
+  receivedDate   DateTime?      @db.Date
+  totalAmount    Decimal        @default(0.00) @db.Decimal(12, 2)
+  status         PurchaseStatus @default(ORDERED)
+  notes          String?        @db.Text
+  createdById    String?        @db.Uuid
+  createdAt      DateTime       @default(now()) @db.Timestamptz()
+  updatedAt      DateTime       @default(now()) @updatedAt @db.Timestamptz()
+
+  school    School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  campus    Campus?                 @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  supplier  InventorySupplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy User?                   @relation("CreatedPurchases", fields: [createdById], references: [id], onDelete: SetNull)
+  items     InventoryPurchaseItem[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, purchaseNumber])
+  @@index([schoolId, status])
+  @@index([schoolId, supplierId])
+  @@map("inventory_purchases")
+}
+
+model InventoryPurchaseItem {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId         String   @db.Uuid
+  purchaseId       String   @db.Uuid
+  itemId           String   @db.Uuid
+  quantity         Int
+  unitCost         Decimal  @db.Decimal(12, 2)
+  totalCost        Decimal  @db.Decimal(12, 2)
+  receivedQuantity Int      @default(0)
+  createdAt        DateTime @default(now()) @db.Timestamptz()
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz()
+
+  school   School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  purchase InventoryPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  item     InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, purchaseId])
+  @@index([schoolId, itemId])
+  @@map("inventory_purchase_items")
+}
+
+model StockMovement {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String            @db.Uuid
+  itemId              String            @db.Uuid
+  campusId            String            @db.Uuid
+  movementType        StockMovementType
+  quantity            Int
+  unitCost            Decimal           @default(0.00) @db.Decimal(12, 2)
+  totalCost           Decimal           @default(0.00) @db.Decimal(12, 2)
+  sourceCampusId      String?           @db.Uuid
+  destinationCampusId String?           @db.Uuid
+  recipientEmployeeId String?           @db.Uuid
+  referenceType       String?           @db.VarChar(50)
+  referenceId         String?           @db.Uuid
+  notes               String?           @db.Text
+  createdById         String            @db.Uuid
+  createdAt           DateTime          @default(now()) @db.Timestamptz()
+
+  school            School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  item              InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  campus            Campus        @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  recipientEmployee Employee?     @relation(fields: [recipientEmployeeId], references: [id], onDelete: SetNull)
+  createdBy         User          @relation("CreatedStockMovements", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, itemId, campusId])
+  @@index([schoolId, movementType])
+  @@index([schoolId, createdAt])
+  @@map("stock_movements")
+}
+
+model InventoryTransfer {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String   @db.Uuid
+  transferNumber      String   @db.VarChar(50)
+  itemId              String   @db.Uuid
+  sourceCampusId      String   @db.Uuid
+  destinationCampusId String   @db.Uuid
+  quantity            Int
+  transferDate        DateTime @default(now()) @db.Date
+  reason              String?  @db.Text
+  initiatedById       String   @db.Uuid
+  status              String   @default("COMPLETED") @db.VarChar(20)
+  createdAt           DateTime @default(now()) @db.Timestamptz()
+  updatedAt           DateTime @default(now()) @updatedAt @db.Timestamptz()
+
+  school            School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  item              InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  sourceCampus      Campus        @relation("TransferSourceCampus", fields: [sourceCampusId], references: [id], onDelete: Restrict)
+  destinationCampus Campus        @relation("TransferDestinationCampus", fields: [destinationCampusId], references: [id], onDelete: Restrict)
+  initiatedBy       User          @relation("InitiatedTransfers", fields: [initiatedById], references: [id], onDelete: Restrict)
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, transferNumber])
+  @@index([schoolId, itemId])
+  @@map("inventory_transfers")
+}
+
+model Asset {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId            String          @db.Uuid
+  itemId              String          @db.Uuid
+  campusId            String          @db.Uuid
+  assetCode           String          @db.VarChar(100)
+  serialNumber        String?         @db.VarChar(100)
+  barcode             String?         @db.VarChar(100)
+  modelNumber         String?         @db.VarChar(100)
+  purchaseDate        DateTime?       @db.Date
+  purchaseCost        Decimal         @default(0.00) @db.Decimal(12, 2)
+  warrantyExpiry      DateTime?       @db.Date
+  currentCondition    AssetCondition  @default(NEW)
+  status              AssetStatus     @default(AVAILABLE)
+  assignedEmployeeId  String?         @db.Uuid
+  locationClassroomId String?         @db.Uuid
+  roomLocation        String?         @db.VarChar(150)
+  disposalDate        DateTime?       @db.Date
+  disposalReason      String?         @db.Text
+  disposalValue       Decimal?        @db.Decimal(12, 2)
+  disposedById        String?         @db.Uuid
+  notes               String?         @db.Text
+  createdAt           DateTime        @default(now()) @db.Timestamptz()
+  updatedAt           DateTime        @default(now()) @updatedAt @db.Timestamptz()
+
+  school            School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  item              InventoryItem         @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  campus            Campus                @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  assignedEmployee  Employee?             @relation("AssignedEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  locationClassroom Classroom?            @relation(fields: [locationClassroomId], references: [id], onDelete: SetNull)
+  disposedBy        User?                 @relation("DisposedAssets", fields: [disposedById], references: [id], onDelete: SetNull)
+  assignments       AssetAssignment[]
+  maintenanceLogs   AssetMaintenanceLog[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, assetCode])
+  @@index([schoolId, status])
+  @@index([schoolId, itemId])
+  @@index([schoolId, campusId])
+  @@index([schoolId, assignedEmployeeId])
+  @@map("assets")
+}
+
+model AssetAssignment {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId              String          @db.Uuid
+  assetId               String          @db.Uuid
+  employeeId            String?         @db.Uuid
+  campusId              String?         @db.Uuid
+  classroomId           String?         @db.Uuid
+  locationName          String?         @db.VarChar(150)
+  assignedDate          DateTime        @default(now()) @db.Timestamptz()
+  returnedDate          DateTime?       @db.Timestamptz()
+  conditionOnAssignment AssetCondition  @default(GOOD)
+  conditionOnReturn     AssetCondition?
+  assignedById          String          @db.Uuid
+  notes                 String?         @db.Text
+  createdAt             DateTime        @default(now()) @db.Timestamptz()
+  updatedAt             DateTime        @default(now()) @updatedAt @db.Timestamptz()
+
+  school     School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  asset      Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  employee   Employee?  @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  campus     Campus?    @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  classroom  Classroom? @relation(fields: [classroomId], references: [id], onDelete: SetNull)
+  assignedBy User       @relation("AssignedAssets", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, assetId])
+  @@index([schoolId, employeeId])
+  @@map("asset_assignments")
+}
+
+model AssetMaintenanceLog {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId         String    @db.Uuid
+  assetId          String    @db.Uuid
+  maintenanceType  String    @db.VarChar(100)
+  serviceDate      DateTime  @db.Date
+  vendorName       String?   @db.VarChar(150)
+  issueDescription String?   @db.Text
+  cost             Decimal   @default(0.00) @db.Decimal(12, 2)
+  status           String    @default("COMPLETED") @db.VarChar(50)
+  nextServiceDate  DateTime? @db.Date
+  notes            String?   @db.Text
+  createdById      String?   @db.Uuid
+  createdAt        DateTime  @default(now()) @db.Timestamptz()
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamptz()
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("CreatedAssetMaintenance", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, assetId])
+  @@index([schoolId, serviceDate])
+  @@map("asset_maintenance_logs")
+}
+
+// ============================================================================
+// DOMAIN 26: ADVANCED REPORTING & ANALYTICS
+// ============================================================================
+
+model SavedReport {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String   @db.Uuid
+  userId      String   @db.Uuid
+  reportId    String   @db.VarChar(100)
+  name        String   @db.VarChar(200)
+  nameBn      String?  @db.VarChar(200)
+  description String?  @db.Text
+  filters     Json     @default("{}")
+  columns     Json?
+  sortBy      String?  @db.VarChar(100)
+  sortOrder   String?  @default("ASC") @db.VarChar(10)
+  isPinned    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz()
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, userId, reportId])
+  @@map("saved_reports")
+}
+
+model ReportExportLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String   @db.Uuid
+  userId      String   @db.Uuid
+  reportId    String   @db.VarChar(100)
+  format      String   @db.VarChar(20)
+  filters     Json     @default("{}")
+  resultCount Int      @default(0)
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, schoolId])
+  @@index([schoolId, reportId, createdAt])
+  @@index([schoolId, userId, createdAt])
+  @@map("report_export_logs")
+}
+
+

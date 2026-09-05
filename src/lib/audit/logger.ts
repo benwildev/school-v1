@@ -27,7 +27,19 @@ export interface LogAuditParams {
 function sanitizeState(state?: Record<string, unknown> | null): Prisma.InputJsonValue | undefined {
   if (!state) return undefined;
   const sanitized = { ...state };
-  const sensitiveKeys = ['password', 'passwordhash', 'password_hash', 'token', 'secret', 'credentialsencrypted', 'credentials_encrypted'];
+  const sensitiveKeys = [
+    'password',
+    'passwordhash',
+    'password_hash',
+    'token',
+    'secret',
+    'credentialsencrypted',
+    'credentials_encrypted',
+    'trackingcode',
+    'tracking_code',
+    'trackingpin',
+    'tracking_pin',
+  ];
 
   for (const key of Object.keys(sanitized)) {
     if (sensitiveKeys.includes(key.toLowerCase())) {

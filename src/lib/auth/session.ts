@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { generateSecureId } from './crypto';
-import { getSessionRevocationStore } from './revocation-store';
+import { generateSecureId } from './crypto.ts';
+import { getSessionRevocationStore } from './revocation-store.ts';
 
 export const SESSION_COOKIE_NAME = '__edusmart_session';
 export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 Days

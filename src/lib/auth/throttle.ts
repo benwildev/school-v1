@@ -1,4 +1,4 @@
-import { getLoginThrottleStore, THROTTLE_MAX_ATTEMPTS, THROTTLE_LOCKOUT_SECONDS } from './throttle-store';
+import { getLoginThrottleStore, THROTTLE_MAX_ATTEMPTS, THROTTLE_LOCKOUT_SECONDS } from './throttle-store.ts';
 
 export { THROTTLE_MAX_ATTEMPTS, THROTTLE_LOCKOUT_SECONDS };
 
