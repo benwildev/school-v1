@@ -231,7 +231,8 @@ export async function POST(
       { status: 201 }
     );
   } catch (error: unknown) {
-    console.error('Public Admission Submission Error:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Public Admission Submission Error:', errorMsg);
     return NextResponse.json(
       { success: false, error: 'ভর্তি আবেদন জমা দেওয়ার সময় সার্ভার ত্রুটি ঘটেছে।' },
       { status: 500 }
@@ -298,9 +299,10 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    console.error('Public School Info Error:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Public School Info Error:', errorMsg);
     return NextResponse.json(
-      { success: false, error: 'বিদ্যালয়ের তথ্য লোড করতে ব্যর্থ হয়েছে।' },
+      { success: false, error: 'বিদ্যালয়ের ডাটাবেজের সাথে সংযোগ স্থাপন করা যায়নি। অনুগ্রহ করে ডাটাবেজ কনফিগারেশন চেক করুন।' },
       { status: 500 }
     );
   }

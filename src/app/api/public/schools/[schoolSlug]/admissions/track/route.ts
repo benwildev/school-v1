@@ -139,7 +139,8 @@ export async function GET(
       },
     });
   } catch (error: unknown) {
-    console.error('Admission Tracking Error:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Admission Tracking Error:', errorMsg);
     return NextResponse.json(
       { success: false, error: 'আবেদনের তথ্য অনুসন্ধানের সময় সার্ভার ত্রুটি ঘটেছে।' },
       { status: 500 }

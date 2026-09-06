@@ -103,9 +103,15 @@ export default function PublicAdmissionPage({
       setError(null);
       try {
         const res = await fetch(`/api/public/schools/${schoolSlug}/admissions`);
-        const json = await res.json();
-        if (!res.ok || !json.success) {
-          throw new Error(json.error || 'বিদ্যালয়ের তথ্য লোড করা যায়নি।');
+        let json: any = null;
+        try {
+          json = await res.json();
+        } catch {
+          // Response was not JSON
+        }
+
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || 'বিদ্যালয়ের তথ্য লোড করা যায়নি। ডাটাবেজ বা সার্ভার সংযোগ পরীক্ষা করুন।');
         }
 
         setSchool(json.data.school);
@@ -149,9 +155,15 @@ export default function PublicAdmissionPage({
         }),
       });
 
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'আবেদন জমা দিতে ব্যর্থ হয়েছে।');
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch {
+        // Non-JSON response
+      }
+
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'আবেদন জমা দিতে ব্যর্থ হয়েছে।');
       }
 
       setSubmittedData(json.data);

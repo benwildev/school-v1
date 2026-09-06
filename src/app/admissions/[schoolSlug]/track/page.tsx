@@ -53,9 +53,15 @@ export default function PublicAdmissionTrackPage({
       const res = await fetch(
         `/api/public/schools/${schoolSlug}/admissions/track?${paramName}=${encodeURIComponent(code)}`
       );
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'আবেদনের তথ্য খুঁজে পাওয়া যায়নি।');
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch {
+        // Non-JSON response
+      }
+
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'আবেদনের তথ্য খুঁজে পাওয়া যায়নি। ডাটাবেজ বা সার্ভার সংযোগ পরীক্ষা করুন।');
       }
 
       setResult(json.data);
