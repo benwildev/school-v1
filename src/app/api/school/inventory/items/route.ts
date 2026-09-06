@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const campusId = searchParams.get('campusId') || undefined;
     const query = searchParams.get('q')?.trim();
 
-    const items = await withTenantContext(schoolId, async () => {
+    const items = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (categoryId) whereClause.categoryId = categoryId;
       if (itemType) whereClause.itemType = itemType;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         ];
       }
 
-      return prisma.inventoryItem.findMany({
+      return tx.inventoryItem.findMany({
         where: whereClause,
         include: {
           category: { select: { id: true, code: true, nameEn: true, nameBn: true } },
@@ -97,22 +97,22 @@ export async function POST(request: NextRequest) {
       description,
     } = parsed.data;
 
-    const item = await withTenantContext(schoolId, async () => {
+    const item = await withTenantContext(schoolId, async (tx) => {
       // Validate category belongs to school
-      const category = await prisma.inventoryCategory.findFirst({
+      const category = await tx.inventoryCategory.findFirst({
         where: { id: categoryId, schoolId },
       });
       if (!category) throw new Error('Category not found in this school');
 
       // Check unique itemCode
-      const existing = await prisma.inventoryItem.findFirst({
+      const existing = await tx.inventoryItem.findFirst({
         where: { schoolId, itemCode },
       });
       if (existing) {
         throw new Error(`Item code "${itemCode}" already exists.`);
       }
 
-      return prisma.inventoryItem.create({
+      return tx.inventoryItem.create({
         data: {
           schoolId,
           categoryId,

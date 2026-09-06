@@ -15,13 +15,13 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '50', 10));
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (attendanceType) where.attendanceType = attendanceType;
 
       const [total, corrections] = await Promise.all([
-        prisma.attendanceCorrection.count({ where }),
-        prisma.attendanceCorrection.findMany({
+        tx.attendanceCorrection.count({ where }),
+        tx.attendanceCorrection.findMany({
           where,
           include: {
             actionBy: { select: { id: true, fullName: true, email: true } },
@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: transitionValidation.error }, { status: 400 });
     }
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       if (validated.attendanceType === 'STUDENT') {
         if (!validated.studentAttendanceId) {
           return NextResponse.json({ error: 'studentAttendanceId is required for student corrections' }, { status: 400 });
         }
 
-        const existing = await prisma.studentAttendance.findFirst({
+        const existing = await tx.studentAttendance.findFirst({
           where: { id: validated.studentAttendanceId, schoolId },
         });
 
@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Student attendance record not found' }, { status: 404 });
         }
 
-        const [correction, updated] = await prisma.$transaction([
-          prisma.attendanceCorrection.create({
+        const [correction, updated] = await tx.$transaction([
+          tx.attendanceCorrection.create({
             data: {
               schoolId,
               attendanceType: 'STUDENT',
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
               actionReason: validated.actionReason,
             },
           }),
-          prisma.studentAttendance.update({
+          tx.studentAttendance.update({
             where: { id: existing.id },
             data: {
               status: validated.correctedStatus,
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'employeeAttendanceId is required for employee corrections' }, { status: 400 });
         }
 
-        const existing = await prisma.employeeAttendance.findFirst({
+        const existing = await tx.employeeAttendance.findFirst({
           where: { id: validated.employeeAttendanceId, schoolId },
         });
 
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Employee attendance record not found' }, { status: 404 });
         }
 
-        const [correction, updated] = await prisma.$transaction([
-          prisma.attendanceCorrection.create({
+        const [correction, updated] = await tx.$transaction([
+          tx.attendanceCorrection.create({
             data: {
               schoolId,
               attendanceType: 'EMPLOYEE',
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
               actionReason: validated.actionReason,
             },
           }),
-          prisma.employeeAttendance.update({
+          tx.employeeAttendance.update({
             where: { id: existing.id },
             data: {
               status: validated.correctedStatus,

@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'INVENTORY_VIEW' });
 
-    const categories = await withTenantContext(schoolId, async () => {
-      return prisma.inventoryCategory.findMany({
+    const categories = await withTenantContext(schoolId, async (tx) => {
+      return tx.inventoryCategory.findMany({
         where: { schoolId },
         include: {
           _count: { select: { items: true } },
@@ -39,15 +39,15 @@ export async function POST(request: NextRequest) {
 
     const { code, nameEn, nameBn, itemType, description } = parsed.data;
 
-    const category = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.inventoryCategory.findFirst({
+    const category = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.inventoryCategory.findFirst({
         where: { schoolId, code },
       });
       if (existing) {
         throw new Error(`Inventory category code "${code}" already exists.`);
       }
 
-      return prisma.inventoryCategory.create({
+      return tx.inventoryCategory.create({
         data: {
           schoolId,
           code,

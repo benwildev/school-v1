@@ -61,6 +61,13 @@ export interface WhatsAppProvider {
   verifyWebhookSignature?(signature: string, payload: string, secret: string): boolean;
 }
 
+export function verifyHmacSha256(signature: string, payload: string, secret: string): boolean {
+  if (!signature || !payload || !secret) return false;
+  const rawSig = signature.startsWith('sha256=') ? signature.slice(7) : signature;
+  const computed = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  return secureTimingSafeCompare(rawSig, computed);
+}
+
 // ============================================================================
 // Concrete Mock Implementations (Deterministic for Testing & Offline Execution)
 // ============================================================================
@@ -70,6 +77,9 @@ export class MockSmsProvider implements SmsProvider {
   public sentMessages: Array<SmsSendOptions & { messageId: string; timestamp: Date }> = [];
 
   async sendSms(options: SmsSendOptions): Promise<SendMessageResult> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SECURITY ERROR: MockSmsProvider cannot be used in production environment. A real SMS gateway (e.g. SSL Wireless, Onnorokom, Greenweb) must be configured.');
+    }
     const phoneRes = normalizeBangladeshiPhone(options.to);
     if (!phoneRes.isValid) {
       return {
@@ -114,8 +124,7 @@ export class MockSmsProvider implements SmsProvider {
   }
 
   verifyWebhookSignature(signature: string, payload: string, secret: string): boolean {
-    const computed = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-    return secureTimingSafeCompare(signature, computed);
+    return verifyHmacSha256(signature, payload, secret);
   }
 }
 
@@ -124,6 +133,9 @@ export class MockEmailProvider implements EmailProvider {
   public sentEmails: Array<EmailSendOptions & { messageId: string; timestamp: Date }> = [];
 
   async sendEmail(options: EmailSendOptions): Promise<SendMessageResult> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SECURITY ERROR: MockEmailProvider cannot be used in production environment. A real SMTP/SES/SendGrid gateway must be configured.');
+    }
     if (!options.to || !options.to.includes('@')) {
       return {
         success: false,
@@ -156,8 +168,7 @@ export class MockEmailProvider implements EmailProvider {
   }
 
   verifyWebhookSignature(signature: string, payload: string, secret: string): boolean {
-    const computed = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-    return secureTimingSafeCompare(signature, computed);
+    return verifyHmacSha256(signature, payload, secret);
   }
 }
 
@@ -166,6 +177,9 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
   public sentWhatsApp: Array<WhatsAppSendOptions & { messageId: string; timestamp: Date }> = [];
 
   async sendWhatsApp(options: WhatsAppSendOptions): Promise<SendMessageResult> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SECURITY ERROR: MockWhatsAppProvider cannot be used in production environment. A real WhatsApp Business Cloud API gateway must be configured.');
+    }
     const phoneRes = normalizeBangladeshiPhone(options.to);
     if (!phoneRes.isValid) {
       return {
@@ -204,8 +218,7 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
   }
 
   verifyWebhookSignature(signature: string, payload: string, secret: string): boolean {
-    const computed = 'sha256=' + crypto.createHmac('sha256', secret).update(payload).digest('hex');
-    return secureTimingSafeCompare(signature, computed);
+    return verifyHmacSha256(signature, payload, secret);
   }
 }
 

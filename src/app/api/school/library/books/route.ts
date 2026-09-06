@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId') || undefined;
     const authorId = searchParams.get('authorId') || undefined;
 
-    const books = await withTenantContext(schoolId, async () => {
+    const books = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (categoryId) whereClause.categoryId = categoryId;
       if (authorId) whereClause.authorId = authorId;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         ];
       }
 
-      return prisma.libraryBook.findMany({
+      return tx.libraryBook.findMany({
         where: whereClause,
         include: {
           category: { select: { id: true, code: true, nameEn: true, nameBn: true } },
@@ -108,8 +108,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const book = await withTenantContext(schoolId, async () => {
-      return prisma.libraryBook.create({
+    const book = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryBook.create({
         data: {
           schoolId,
           categoryId: categoryId || null,

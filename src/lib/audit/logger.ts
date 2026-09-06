@@ -19,35 +19,79 @@ export interface LogAuditParams {
   traceId?: string;
   ipAddress?: string;
   userAgent?: string;
+  client?: any;
+}
+
+const SENSITIVE_KEY_STRINGS = new Set([
+  'password',
+  'passwordhash',
+  'passwd',
+  'secret',
+  'token',
+  'accesstoken',
+  'refreshtoken',
+  'jwt',
+  'authorization',
+  'bearer',
+  'credentials',
+  'credentialsencrypted',
+  'trackingcode',
+  'trackingpin',
+  'pin',
+  'cvv',
+  'cvc',
+  'creditcard',
+  'cardnumber',
+  'apikey',
+  'webhooksecret',
+  'privatekey',
+  'passphrase',
+  'cookie',
+  'sessionid',
+  'salt',
+  'hash',
+  'secretkey',
+]);
+
+function isSensitiveKey(key: string): boolean {
+  const normalized = key.toLowerCase().replace(/[-_\s]/g, '');
+  if (SENSITIVE_KEY_STRINGS.has(normalized)) return true;
+  for (const sensitive of SENSITIVE_KEY_STRINGS) {
+    if (normalized.includes(sensitive)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
- * Sanitizes object keys to prevent accidental logging of passwords, tokens, or sensitive hashes.
+ * Recursively sanitizes data to prevent accidental logging of passwords, tokens, pins, or secrets.
  */
-function sanitizeState(state?: Record<string, unknown> | null): Prisma.InputJsonValue | undefined {
-  if (!state) return undefined;
-  const sanitized = { ...state };
-  const sensitiveKeys = [
-    'password',
-    'passwordhash',
-    'password_hash',
-    'token',
-    'secret',
-    'credentialsencrypted',
-    'credentials_encrypted',
-    'trackingcode',
-    'tracking_code',
-    'trackingpin',
-    'tracking_pin',
-  ];
+export function sanitizeState(value: unknown, seen = new WeakSet(), depth = 0): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value !== 'object') return value;
+  if (value instanceof Date) return value.toISOString();
+  if (depth > 10) return '[MAX_DEPTH_EXCEEDED]';
 
-  for (const key of Object.keys(sanitized)) {
-    if (sensitiveKeys.includes(key.toLowerCase())) {
-      sanitized[key] = '[REDACTED]';
+  if (seen.has(value as object)) {
+    return '[CIRCULAR]';
+  }
+  seen.add(value as object);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeState(item, seen, depth + 1));
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (isSensitiveKey(k)) {
+      result[k] = '[REDACTED]';
+    } else {
+      result[k] = sanitizeState(v, seen, depth + 1);
     }
   }
 
-  return sanitized as Prisma.InputJsonValue;
+  return result;
 }
 
 /**
@@ -55,7 +99,8 @@ function sanitizeState(state?: Record<string, unknown> | null): Prisma.InputJson
  */
 export async function logAuditEvent(params: LogAuditParams): Promise<void> {
   try {
-    await prisma.auditLog.create({
+    const dbClient = params.client || prisma;
+    await dbClient.auditLog.create({
       data: {
         schoolId: params.schoolId,
         actorUserId: params.actorUserId || null,
@@ -66,8 +111,8 @@ export async function logAuditEvent(params: LogAuditParams): Promise<void> {
         entity: params.entity,
         entityId: params.entityId,
         resourceUrn: params.resourceUrn || null,
-        beforeState: sanitizeState(params.beforeState),
-        afterState: sanitizeState(params.afterState),
+        beforeState: (sanitizeState(params.beforeState) ?? undefined) as Prisma.InputJsonValue | undefined,
+        afterState: (sanitizeState(params.afterState) ?? undefined) as Prisma.InputJsonValue | undefined,
         changeSummary: params.changeSummary || null,
         requestId: params.requestId || null,
         sessionId: params.sessionId || null,

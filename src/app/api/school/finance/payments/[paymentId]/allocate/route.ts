@@ -71,19 +71,52 @@ export async function POST(
       );
     }
 
-    // Execute atomic allocation
+    // Execute atomic allocation with strict row-level locking
     const createdAllocations = await withTenantContext(schoolId, async (tx) => {
+      // 1. Lock payment row to prevent concurrent double-allocation
+      await tx.$queryRaw`
+        SELECT id FROM payments 
+        WHERE id = ${paymentId}::uuid AND school_id = ${schoolId}::uuid 
+        FOR UPDATE
+      `;
+
+      const lockedPayment = await tx.payment.findFirst({
+        where: { id: paymentId, schoolId },
+      });
+
+      if (!lockedPayment) {
+        throw new Error('Payment not found');
+      }
+
+      if (lockedPayment.status !== 'SUCCESS') {
+        throw new Error(`Cannot allocate a payment with status ${lockedPayment.status}`);
+      }
+
+      const freshUnallocated = toDecimal(lockedPayment.advanceCreditAmount);
+      if (sumRequested.greaterThan(freshUnallocated)) {
+        throw new Error(
+          `Total requested allocation (${sumRequested.toString()} BDT) exceeds payment available advance balance (${freshUnallocated.toString()} BDT)`
+        );
+      }
+
       const records = [];
 
       for (const a of allocations) {
         const amt = toDecimal(a.amount);
+
+        // 2. Lock invoice row to prevent concurrent allocation race
+        await tx.$queryRaw`
+          SELECT id FROM student_fees 
+          WHERE id = ${a.studentFeeId}::uuid AND school_id = ${schoolId}::uuid 
+          FOR UPDATE
+        `;
 
         // Verify invoice belongs to the same student and school
         const invoice = await tx.studentFee.findFirst({
           where: {
             id: a.studentFeeId,
             schoolId,
-            studentId: payment.studentId,
+            studentId: lockedPayment.studentId,
           },
         });
 

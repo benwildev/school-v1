@@ -10,11 +10,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const vehicleId = searchParams.get('vehicleId');
 
-    const logs = await withTenantContext(schoolId, async () => {
+    const logs = await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (vehicleId) where.vehicleId = vehicleId;
 
-      return prisma.vehicleMaintenanceLog.findMany({
+      return tx.vehicleMaintenanceLog.findMany({
         where,
         include: {
           vehicle: {
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const log = await withTenantContext(schoolId, async () => {
+    const log = await withTenantContext(schoolId, async (tx) => {
       // 1. Verify vehicle belongs to school
-      const vehicle = await prisma.vehicle.findFirst({
+      const vehicle = await tx.vehicle.findFirst({
         where: { id: vehicleId, schoolId },
       });
       if (!vehicle) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. Create maintenance record
-      const maintenanceRecord = await prisma.vehicleMaintenanceLog.create({
+      const maintenanceRecord = await tx.vehicleMaintenanceLog.create({
         data: {
           schoolId,
           vehicleId,

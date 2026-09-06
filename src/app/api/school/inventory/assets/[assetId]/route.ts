@@ -12,8 +12,8 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'ASSET_VIEW' });
     const { assetId } = await params;
 
-    const asset = await withTenantContext(schoolId, async () => {
-      return prisma.asset.findFirst({
+    const asset = await withTenantContext(schoolId, async (tx) => {
+      return tx.asset.findFirst({
         where: { id: assetId, schoolId },
         include: {
           item: true,
@@ -69,8 +69,8 @@ export async function PATCH(
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.asset.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.asset.findFirst({
         where: { id: assetId, schoolId },
       });
       if (!existing) throw new Error('Asset not found');
@@ -82,7 +82,7 @@ export async function PATCH(
         }
       }
 
-      return prisma.asset.update({
+      return tx.asset.update({
         where: { id: assetId },
         data: parsed.data,
       });

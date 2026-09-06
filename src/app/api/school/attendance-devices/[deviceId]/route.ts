@@ -14,8 +14,8 @@ export async function GET(
     const { deviceId } = await params;
     const { schoolId } = await requirePermission(request, { permission: 'ATTENDANCE_DEVICE_VIEW' });
 
-    return await withTenantContext(schoolId, async () => {
-      const device = await prisma.biometricDevice.findFirst({
+    return await withTenantContext(schoolId, async (tx) => {
+      const device = await tx.biometricDevice.findFirst({
         where: { id: deviceId, schoolId },
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -47,8 +47,8 @@ export async function PUT(
     const body = await request.json();
     const validated = DeviceUpdateSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
-      const existing = await prisma.biometricDevice.findFirst({
+    return await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.biometricDevice.findFirst({
         where: { id: deviceId, schoolId },
       });
 
@@ -66,7 +66,7 @@ export async function PUT(
         delete updateData.apiKey;
       }
 
-      const updated = await prisma.biometricDevice.update({
+      const updated = await tx.biometricDevice.update({
         where: { id: deviceId },
         data: updateData,
       });
@@ -102,8 +102,8 @@ export async function DELETE(
     const { deviceId } = await params;
     const { context, schoolId } = await requirePermission(request, { permission: 'ATTENDANCE_DEVICE_UPDATE' });
 
-    return await withTenantContext(schoolId, async () => {
-      const existing = await prisma.biometricDevice.findFirst({
+    return await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.biometricDevice.findFirst({
         where: { id: deviceId, schoolId },
       });
 
@@ -111,7 +111,7 @@ export async function DELETE(
         return NextResponse.json({ error: 'Device not found' }, { status: 404 });
       }
 
-      await prisma.biometricDevice.delete({
+      await tx.biometricDevice.delete({
         where: { id: deviceId },
       });
 

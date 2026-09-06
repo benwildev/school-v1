@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { WebhookCallbackSchema } from '@/lib/validation/communication';
 import { CommunicationProviderRegistry } from '@/lib/communication/provider-abstraction';
 import { checkWebhookThrottle } from '@/lib/security/communication-throttle';
+import { getCommunicationWebhookSecret } from '@/lib/env';
 
 export async function POST(
   request: NextRequest,
@@ -24,26 +25,40 @@ export async function POST(
     const rawBodyText = await request.text();
     const signature = request.headers.get('x-hub-signature-256') || request.headers.get('x-provider-signature') || '';
 
-    // 2. Signature verification
-    const webhookSecret = process.env.COMMUNICATION_WEBHOOK_SECRET || 'edusmart-webhook-secret-salt-2026';
-    let isSignatureValid = false;
+    const upperProvider = provider.toUpperCase();
+    if (process.env.NODE_ENV === 'production' && upperProvider.startsWith('MOCK_')) {
+      return NextResponse.json(
+        { error: 'Mock communication providers are disabled in production environment.' },
+        { status: 403 }
+      );
+    }
 
-    if (provider.toUpperCase() === 'SMS' || provider.toUpperCase() === 'MOCK_SMS') {
+    // 2. Signature verification
+    const webhookSecret = getCommunicationWebhookSecret();
+    let isSignatureValid = false;
+    if (upperProvider === 'SMS' || upperProvider === 'MOCK_SMS') {
       const smsProvider = CommunicationProviderRegistry.getSmsProvider();
       if (smsProvider.verifyWebhookSignature) {
         isSignatureValid = smsProvider.verifyWebhookSignature(signature, rawBodyText, webhookSecret);
       } else {
-        isSignatureValid = true; // Provider does not enforce HMAC
+        isSignatureValid = process.env.NODE_ENV !== 'production';
       }
-    } else if (provider.toUpperCase() === 'WHATSAPP' || provider.toUpperCase() === 'MOCK_WHATSAPP') {
+    } else if (upperProvider === 'WHATSAPP' || upperProvider === 'MOCK_WHATSAPP') {
       const waProvider = CommunicationProviderRegistry.getWhatsAppProvider();
       if (waProvider.verifyWebhookSignature) {
         isSignatureValid = waProvider.verifyWebhookSignature(signature, rawBodyText, webhookSecret);
       } else {
-        isSignatureValid = true;
+        isSignatureValid = process.env.NODE_ENV !== 'production';
+      }
+    } else if (upperProvider === 'EMAIL' || upperProvider === 'MOCK_EMAIL') {
+      const emailProvider = CommunicationProviderRegistry.getEmailProvider();
+      if (emailProvider.verifyWebhookSignature) {
+        isSignatureValid = emailProvider.verifyWebhookSignature(signature, rawBodyText, webhookSecret);
+      } else {
+        isSignatureValid = process.env.NODE_ENV !== 'production';
       }
     } else {
-      isSignatureValid = true;
+      return NextResponse.json({ error: `Unsupported provider: ${provider}` }, { status: 400 });
     }
 
     if (!isSignatureValid) {

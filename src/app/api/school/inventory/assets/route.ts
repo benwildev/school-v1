@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const assignedEmployeeId = searchParams.get('assignedEmployeeId') || undefined;
     const query = searchParams.get('q')?.trim();
 
-    const assets = await withTenantContext(schoolId, async () => {
+    const assets = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (itemId) whereClause.itemId = itemId;
       if (campusId) whereClause.campusId = campusId;
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         ];
       }
 
-      return prisma.asset.findMany({
+      return tx.asset.findMany({
         where: whereClause,
         include: {
           item: {
@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const asset = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const asset = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         // 1. Verify item exists and is ASSET
         const item = await tx.inventoryItem.findFirst({
           where: { id: itemId, schoolId },

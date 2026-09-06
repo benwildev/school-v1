@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'ATTENDANCE_DEVICE_VIEW' });
 
-    return await withTenantContext(schoolId, async () => {
-      const devices = await prisma.biometricDevice.findMany({
+    return await withTenantContext(schoolId, async (tx) => {
+      const devices = await tx.biometricDevice.findMany({
         where: { schoolId },
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = DeviceCreateSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       // Check serial uniqueness within school
-      const existing = await prisma.biometricDevice.findUnique({
+      const existing = await tx.biometricDevice.findUnique({
         where: {
           schoolId_deviceSerial: {
             schoolId,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       const credentialsEncrypted = validated.credentials ? encryptCredential(validated.credentials) : null;
       const apiKeyHash = validated.apiKey ? hashApiKey(validated.apiKey) : null;
 
-      const device = await prisma.biometricDevice.create({
+      const device = await tx.biometricDevice.create({
         data: {
           schoolId,
           campusId: validated.campusId,

@@ -1,10 +1,11 @@
 import crypto from 'crypto';
+import { getDeviceCredentialSecret } from '../env.ts';
 
 /**
- * Derives a 32-byte key from environment secret or a secure fallback.
+ * Derives a 32-byte key from strictly enforced environment secret.
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.DEVICE_CREDENTIAL_SECRET || process.env.NEXTAUTH_SECRET || 'edusmart-bd-production-device-encryption-key-salt-2026';
+  const secret = getDeviceCredentialSecret();
   return crypto.createHash('sha256').update(secret).digest();
 }
 

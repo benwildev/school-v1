@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
     const campusId = searchParams.get('campusId') || undefined;
     const barcode = searchParams.get('barcode')?.trim() || undefined;
 
-    const copies = await withTenantContext(schoolId, async () => {
+    const copies = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (bookId) whereClause.bookId = bookId;
       if (status) whereClause.status = status;
       if (campusId) whereClause.campusId = campusId;
       if (barcode) whereClause.barcode = barcode;
 
-      return prisma.libraryBookCopy.findMany({
+      return tx.libraryBookCopy.findMany({
         where: whereClause,
         include: {
           book: {
@@ -82,15 +82,15 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const copy = await withTenantContext(schoolId, async () => {
+    const copy = await withTenantContext(schoolId, async (tx) => {
       // Check that the book belongs to the school
-      const book = await prisma.libraryBook.findFirst({
+      const book = await tx.libraryBook.findFirst({
         where: { id: bookId, schoolId },
       });
       if (!book) throw new Error('Book not found in this school');
 
       // Check unique accessionNumber in school
-      const existingAcc = await prisma.libraryBookCopy.findFirst({
+      const existingAcc = await tx.libraryBookCopy.findFirst({
         where: { schoolId, accessionNumber },
       });
       if (existingAcc) {
@@ -98,14 +98,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Check unique barcode in school
-      const existingBc = await prisma.libraryBookCopy.findFirst({
+      const existingBc = await tx.libraryBookCopy.findFirst({
         where: { schoolId, barcode },
       });
       if (existingBc) {
         throw new Error(`Barcode "${barcode}" is already in use.`);
       }
 
-      return prisma.libraryBookCopy.create({
+      return tx.libraryBookCopy.create({
         data: {
           schoolId,
           bookId,

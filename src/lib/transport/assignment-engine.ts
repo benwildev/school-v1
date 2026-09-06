@@ -17,6 +17,19 @@ export async function checkVehicleCapacity(
   schoolId: string,
   tx: any = prisma
 ): Promise<VehicleCapacityCheckResult> {
+  // If running inside a transaction, acquire row-level lock to prevent concurrent over-assignment races
+  if (tx && tx.$queryRaw) {
+    try {
+      await tx.$queryRaw`
+        SELECT id FROM transport_vehicles 
+        WHERE id = ${vehicleId}::uuid AND school_id = ${schoolId}::uuid 
+        FOR UPDATE
+      `;
+    } catch {
+      // Fallback if not inside interactive transaction block
+    }
+  }
+
   const vehicle = await tx.vehicle.findFirst({
     where: { id: vehicleId, schoolId },
     select: { id: true, vehicleCode: true, seatingCapacity: true, status: true },

@@ -31,6 +31,8 @@ export async function getManagementOverviewAnalytics(
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const sevenDaysAgo = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // 1. Parallel Aggregation Queries
   const [
@@ -48,6 +50,9 @@ export async function getManagementOverviewAnalytics(
     libraryActiveLoans,
     libraryOverdueLoans,
     inventoryLowStock,
+    recentPayments,
+    recentAttendance,
+    gradeDistribution,
   ] = await Promise.all([
     // Student Counts
     prisma.student.count({ where: { schoolId, deletedAt: null } }),
@@ -100,6 +105,25 @@ export async function getManagementOverviewAnalytics(
       where: {
         schoolId,
       },
+    }),
+
+    // Real Historical Payments (Past 6 months)
+    prisma.payment.findMany({
+      where: { schoolId, status: 'SUCCESS', paymentDate: { gte: sixMonthsAgo } },
+      select: { totalAmount: true, paymentDate: true },
+    }),
+
+    // Real Attendance Trend (Past 7 days)
+    prisma.studentAttendance.findMany({
+      where: { schoolId, date: { gte: sevenDaysAgo } },
+      select: { date: true, status: true },
+    }),
+
+    // Real Grade Distribution
+    prisma.mark.groupBy({
+      by: ['letterGrade'],
+      where: { schoolId },
+      _count: { id: true },
     }),
   ]);
 
@@ -253,38 +277,74 @@ export async function getManagementOverviewAnalytics(
   }
 
 
+  // 2. Real Monthly Collections Calculation (Past 6 calendar months)
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyCollectionMap = new Map<string, number>();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthlyCollectionMap.set(monthNames[d.getMonth()], 0);
+  }
+  for (const p of recentPayments) {
+    const pMonth = monthNames[new Date(p.paymentDate).getMonth()];
+    if (monthlyCollectionMap.has(pMonth)) {
+      monthlyCollectionMap.set(pMonth, monthlyCollectionMap.get(pMonth)! + Number(p.totalAmount));
+    }
+  }
+  const monthlyCollection = Array.from(monthlyCollectionMap.entries()).map(([month, amount]) => ({
+    month,
+    amount: Math.round(amount),
+  }));
+
+  // 3. Real Attendance Trend (Past 7 days)
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dailyAttendanceMap = new Map<string, { present: number; total: number }>();
+  for (const att of recentAttendance) {
+    const d = new Date(att.date);
+    const dayName = dayNames[d.getDay()];
+    if (!dailyAttendanceMap.has(dayName)) {
+      dailyAttendanceMap.set(dayName, { present: 0, total: 0 });
+    }
+    const stat = dailyAttendanceMap.get(dayName)!;
+    stat.total += 1;
+    if (
+      att.status === AttendanceStatus.PRESENT ||
+      att.status === AttendanceStatus.LATE ||
+      att.status === AttendanceStatus.HALF_DAY
+    ) {
+      stat.present += 1;
+    }
+  }
+  const attendanceTrend = Array.from(dailyAttendanceMap.entries()).map(([date, counts]) => ({
+    date,
+    rate: counts.total > 0 ? Number(((counts.present / counts.total) * 100).toFixed(1)) : 0,
+  }));
+
+  // 4. Real Admission Funnel (Aggregated from admissionStats)
+  const statusCountMap = new Map<string, number>();
+  for (const stat of admissionStats) {
+    statusCountMap.set(stat.status, stat._count.id);
+  }
+  const admissionFunnel = [
+    { stage: 'Applications', count: appCount },
+    { stage: 'Under Review', count: statusCountMap.get('UNDER_REVIEW') || 0 },
+    { stage: 'Approved', count: statusCountMap.get('APPROVED') || 0 },
+    { stage: 'Enrolled', count: enrolledCount },
+  ];
+
+  // 5. Real Academic Grade Distribution (Aggregated from marks)
+  const gradeCountMap = new Map(gradeDistribution.map((g) => [g.letterGrade, g._count.id]));
+  const academicDistribution = ['A+', 'A', 'A-', 'B', 'C', 'D', 'F'].map((grade) => ({
+    grade,
+    count: gradeCountMap.get(grade) || 0,
+  }));
+
   return {
     kpis,
     trends: {
-      monthlyCollection: [
-        { month: 'Jan', amount: 450000 },
-        { month: 'Feb', amount: 520000 },
-        { month: 'Mar', amount: 490000 },
-        { month: 'Apr', amount: 580000 },
-        { month: 'May', amount: 620000 },
-        { month: 'Jun', amount: Number(monthPayments._sum.totalAmount || 650000) },
-      ],
-      attendanceTrend: [
-        { date: 'Sun', rate: 92.5 },
-        { date: 'Mon', rate: 94.0 },
-        { date: 'Tue', rate: 91.8 },
-        { date: 'Wed', rate: 93.5 },
-        { date: 'Thu', rate: 89.0 },
-      ],
-      admissionFunnel: [
-        { stage: 'Applications', count: appCount },
-        { stage: 'Under Review', count: Math.round(appCount * 0.75) },
-        { stage: 'Approved', count: Math.round(appCount * 0.55) },
-        { stage: 'Enrolled', count: enrolledCount },
-      ],
-      academicDistribution: [
-        { grade: 'A+', count: 42 },
-        { grade: 'A', count: 78 },
-        { grade: 'A-', count: 65 },
-        { grade: 'B', count: 50 },
-        { grade: 'C', count: 20 },
-        { grade: 'F', count: 8 },
-      ],
+      monthlyCollection,
+      attendanceTrend,
+      admissionFunnel,
+      academicDistribution,
     },
   };
 }

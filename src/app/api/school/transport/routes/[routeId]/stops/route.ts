@@ -11,16 +11,16 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'ROUTES_VIEW' });
     const { routeId } = await params;
 
-    const stops = await withTenantContext(schoolId, async () => {
+    const stops = await withTenantContext(schoolId, async (tx) => {
       // Validate route belongs to school
-      const route = await prisma.transportRoute.findFirst({
+      const route = await tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
       });
       if (!route) {
         throw new Error('Route not found in this school.');
       }
 
-      return prisma.routeStop.findMany({
+      return tx.routeStop.findMany({
         where: { routeId, schoolId },
         orderBy: { sequenceNumber: 'asc' },
       });
@@ -66,8 +66,8 @@ export async function POST(
       status,
     } = parsed.data;
 
-    const stop = await withTenantContext(schoolId, async () => {
-      const route = await prisma.transportRoute.findFirst({
+    const stop = await withTenantContext(schoolId, async (tx) => {
+      const route = await tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
       });
       if (!route) {
@@ -75,14 +75,14 @@ export async function POST(
       }
 
       // Check unique sequence number within route
-      const existingSeq = await prisma.routeStop.findFirst({
+      const existingSeq = await tx.routeStop.findFirst({
         where: { routeId, sequenceNumber },
       });
       if (existingSeq) {
         throw new Error(`Stop sequence #${sequenceNumber} already exists in this route.`);
       }
 
-      return prisma.routeStop.create({
+      return tx.routeStop.create({
         data: {
           schoolId,
           routeId,

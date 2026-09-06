@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'ATTENDANCE_VIEW' });
 
-    return await withTenantContext(schoolId, async () => {
-      const shifts = await prisma.employeeShift.findMany({
+    return await withTenantContext(schoolId, async (tx) => {
+      const shifts = await tx.employeeShift.findMany({
         where: { schoolId },
         orderBy: { code: 'asc' },
       });
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = EmployeeShiftCreateSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
-      const existing = await prisma.employeeShift.findUnique({
+    return await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.employeeShift.findUnique({
         where: {
           schoolId_code: {
             schoolId,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const shift = await prisma.employeeShift.create({
+      const shift = await tx.employeeShift.create({
         data: {
           schoolId,
           nameEn: validated.nameEn,

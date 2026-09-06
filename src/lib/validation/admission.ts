@@ -7,6 +7,7 @@ import {
   Religion,
   CurriculumVersion,
   AcademicShift,
+  PaymentMethod,
 } from '@prisma/client';
 
 const phoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
@@ -153,6 +154,9 @@ export const AdmissionApprovalConversionSchema = z.object({
   motherGuardianId: z.string().uuid().optional().nullable(),
   admissionDate: z.string().or(z.date()).optional().transform((val) => (val ? new Date(val) : new Date())),
   notes: z.string().trim().max(500).optional().nullable(),
+  admissionFeeAmount: z.coerce.number().min(0).optional().nullable(),
+  paymentMethod: z.nativeEnum(PaymentMethod).optional().nullable(),
+  transactionId: z.string().trim().max(100).optional().nullable(),
 });
 
 export type AdmissionApprovalConversionInput = z.infer<typeof AdmissionApprovalConversionSchema>;

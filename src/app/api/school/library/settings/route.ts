@@ -7,13 +7,13 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_VIEW' });
 
-    const settings = await withTenantContext(schoolId, async () => {
-      let current = await prisma.librarySetting.findUnique({
+    const settings = await withTenantContext(schoolId, async (tx) => {
+      let current = await tx.librarySetting.findUnique({
         where: { schoolId },
       });
 
       if (!current) {
-        current = await prisma.librarySetting.create({
+        current = await tx.librarySetting.create({
           data: { schoolId },
         });
       }
@@ -41,8 +41,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      return prisma.librarySetting.upsert({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      return tx.librarySetting.upsert({
         where: { schoolId },
         create: {
           schoolId,

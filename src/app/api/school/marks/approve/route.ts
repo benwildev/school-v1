@@ -40,17 +40,28 @@ export async function POST(request: NextRequest) {
       where.enrollment.sectionId = sectionId;
     }
 
-    // Check count of matching marks
-    const count = await prisma.mark.count({ where });
-    if (count === 0) {
-      return NextResponse.json(
-        { error: 'No marks found matching the criteria to approve' },
-        { status: 404 }
-      );
+    // Enforce state machine transitions:
+    // Only SUBMITTED_BY_TEACHER marks can transition to APPROVED
+    // DRAFT (unlock/revert) is allowed from SUBMITTED_BY_TEACHER or APPROVED
+    if (status === MarkWorkflowStatus.APPROVED) {
+      where.status = MarkWorkflowStatus.SUBMITTED_BY_TEACHER;
+    } else if (status === MarkWorkflowStatus.DRAFT) {
+      where.status = { in: [MarkWorkflowStatus.SUBMITTED_BY_TEACHER, MarkWorkflowStatus.APPROVED] };
     }
 
     const updated = await withTenantContext(schoolId, async (tx) => {
-      return await tx.mark.updateMany({
+      // Check count of matching marks under tenant context
+      const count = await tx.mark.count({ where });
+      if (count === 0) {
+        throw {
+          status: 400,
+          message: status === MarkWorkflowStatus.APPROVED
+            ? 'No submitted marks found to approve. Marks must be submitted by the teacher (SUBMITTED_BY_TEACHER) before approval.'
+            : 'No marks in submitted or approved state found to revert/unlock to draft.',
+        };
+      }
+
+      const res = await tx.mark.updateMany({
         where,
         data: {
           status,
@@ -58,6 +69,8 @@ export async function POST(request: NextRequest) {
           approvedAt: status === MarkWorkflowStatus.APPROVED ? new Date() : null,
         },
       });
+
+      return { count: res.count };
     });
 
     await logAuditEvent({
@@ -90,6 +103,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error approving marks:', error);
+    if (error?.status && error?.message) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

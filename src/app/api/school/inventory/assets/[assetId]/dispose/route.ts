@@ -23,8 +23,8 @@ export async function POST(
 
     const { disposalDate, disposalReason, disposalValue } = parsed.data;
 
-    const disposed = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const disposed = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         const asset = await tx.asset.findFirst({
           where: { id: assetId, schoolId },
         });

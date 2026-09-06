@@ -27,8 +27,8 @@ export async function POST(
 
     const { condition, damageCharge, notes } = parsed.data;
 
-    const result = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const result = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         // 1. Fetch loan
         const loan = await tx.libraryLoan.findFirst({
           where: { id: loanId, schoolId },
@@ -108,56 +108,92 @@ export async function POST(
           assessedFines.push(fine);
         }
 
-        // Optional finance integration: Create StudentFee if autoBill is enabled and student borrower
-        if (settings.autoBillToStudentAccount && loan.studentId && assessedFines.length > 0) {
+        // 4b. Canonical Finance synchronization: Create StudentFee for student borrower whenever fines assessed
+        if (loan.studentId && assessedFines.length > 0) {
           const totalFineToBill = overdueFineAmount + damageFineAmount;
           if (totalFineToBill > 0) {
-            // Find active enrollment for student
-            const enrollment = await tx.enrollment.findFirst({
+            // Find active (or most recent) enrollment for student
+            let enrollment = await tx.enrollment.findFirst({
               where: {
                 studentId: loan.studentId,
                 schoolId,
                 status: 'ACTIVE',
               },
+              orderBy: { createdAt: 'desc' },
             });
+            if (!enrollment) {
+              enrollment = await tx.enrollment.findFirst({
+                where: {
+                  studentId: loan.studentId,
+                  schoolId,
+                },
+                orderBy: { createdAt: 'desc' },
+              });
+            }
 
             if (enrollment) {
-              const feeType = await tx.feeType.findFirst({
-                where: { schoolId },
+              // Find library-specific fee type, any fee type, or auto-create canonical library fine type
+              let feeType = await tx.feeType.findFirst({
+                where: {
+                  schoolId,
+                  code: { in: ['LIBRARY_FINE', 'FINE', 'LIBRARY'] },
+                },
               });
 
-              if (feeType) {
-                const now = new Date();
-                const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                const periodKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                const studentFee = await tx.studentFee.create({
+              if (!feeType) {
+                feeType = await tx.feeType.findFirst({
+                  where: { schoolId },
+                });
+              }
+
+              if (!feeType) {
+                feeType = await tx.feeType.create({
                   data: {
                     schoolId,
-                    studentId: loan.studentId,
-                    enrollmentId: enrollment.id,
-                    feeTypeId: feeType.id,
-                    invoiceNumber: `INV-LIB-${Date.now().toString(36).toUpperCase()}`,
-                    billingPeriodType: 'MONTHLY',
-                    billingPeriodKey: periodKey,
-                    periodStartDate: now,
-                    periodEndDate: dueDate,
-                    dueDate,
-                    baseAmount: totalFineToBill,
-                    discountAmount: 0,
-                    fineAmount: 0,
-                    netAmount: totalFineToBill,
-                    paidAmount: 0,
-                    dueAmount: totalFineToBill,
-                    status: 'UNPAID',
+                    code: 'LIBRARY_FINE',
+                    nameEn: 'Library Fine',
+                    nameBn: 'লাইব্রেরি জরিমানা',
+                    description: 'Automated library overdue and damage fines',
+                    isRecurring: false,
+                    isRefundable: false,
+                    status: 'ACTIVE',
                   },
                 });
+              }
 
-                for (const fine of assessedFines) {
-                  await tx.libraryFine.update({
-                    where: { id: fine.id },
-                    data: { studentFeeId: studentFee.id },
-                  });
-                }
+              const now = new Date();
+              const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+              const uniqueSuffix = Date.now().toString(36).toUpperCase();
+              const periodKey = `LIB-${loan.id.replace(/-/g, '').slice(0, 8)}-${uniqueSuffix}`;
+              const invoiceNumber = `INV-LIB-${uniqueSuffix}`;
+
+              const studentFee = await tx.studentFee.create({
+                data: {
+                  schoolId,
+                  studentId: loan.studentId,
+                  enrollmentId: enrollment.id,
+                  feeTypeId: feeType.id,
+                  invoiceNumber,
+                  billingPeriodType: 'MONTHLY',
+                  billingPeriodKey: periodKey,
+                  periodStartDate: now,
+                  periodEndDate: dueDate,
+                  dueDate,
+                  baseAmount: totalFineToBill,
+                  discountAmount: 0,
+                  fineAmount: 0,
+                  netAmount: totalFineToBill,
+                  paidAmount: 0,
+                  dueAmount: totalFineToBill,
+                  status: 'UNPAID',
+                },
+              });
+
+              for (const fine of assessedFines) {
+                await tx.libraryFine.update({
+                  where: { id: fine.id },
+                  data: { studentFeeId: studentFee.id },
+                });
               }
             }
           }

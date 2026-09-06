@@ -101,40 +101,56 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 4. Check target roll availability
-      const existingRoll = await tx.enrollment.findUnique({
+      // 4. Check target roll availability among ACTIVE enrollments
+      const activeRollConflict = await tx.enrollment.findFirst({
         where: {
-          schoolId_academicSessionId_classId_sectionId_rollNo: {
-            schoolId,
-            academicSessionId: current.academicSessionId,
-            classId: effectiveClassId,
-            sectionId: targetSectionId,
-            rollNo: targetRollNo,
-          },
+          schoolId,
+          academicSessionId: current.academicSessionId,
+          classId: effectiveClassId,
+          sectionId: targetSectionId,
+          rollNo: targetRollNo,
+          status: EnrollmentStatus.ACTIVE,
         },
       });
 
-      if (existingRoll && existingRoll.id !== current.id) {
+      if (activeRollConflict && activeRollConflict.id !== current.id) {
         throw {
           status: 409,
-          message: `লক্ষ্য শাখা ও শ্রেণীতে রোল ${targetRollNo} ইতিমধ্যে ব্যবহৃত হয়েছে।`,
+          message: `লক্ষ্য শাখা ও শ্রেণীতে রোল ${targetRollNo} ইতিমধ্যে সক্রিয় শিক্ষার্থীর জন্য ব্যবহৃত হয়েছে।`,
         };
       }
 
-      // 5. Update placement
-      const transferNote = `[${new Date().toISOString()}] Transferred from Section ${current.section.nameEn} (Roll ${current.rollNo}) to Section ${targetSection.nameEn} (Roll ${targetRollNo})${reason ? `: ${reason}` : ''}`;
-      const updatedRemarks = current.remarks
+      // 5. Preserve historical enrollment and create new ACTIVE enrollment
+      const transferNote = `[${new Date().toISOString()}] Transferred to Section ${targetSection.nameEn} (Roll ${targetRollNo})${reason ? `: ${reason}` : ''}`;
+      const historicalRemarks = current.remarks
         ? `${current.remarks}\n${transferNote}`
         : transferNote;
 
-      const updated = await tx.enrollment.update({
+      // Mark old enrollment as TRANSFERRED_OUT to keep historical attendance/marks intact
+      await tx.enrollment.update({
         where: { id: current.id },
         data: {
+          status: EnrollmentStatus.TRANSFERRED_OUT,
+          remarks: historicalRemarks,
+        },
+      });
+
+      // Create new ACTIVE enrollment record with target placement
+      const newRemarks = `Transferred from Section ${current.section.nameEn} (Roll ${current.rollNo})${reason ? `: ${reason}` : ''}`;
+      const updated = await tx.enrollment.create({
+        data: {
+          schoolId,
+          studentId: current.studentId,
+          academicSessionId: current.academicSessionId,
           classId: effectiveClassId,
           sectionId: targetSectionId,
           rollNo: targetRollNo,
           campusId: effectiveCampusId,
-          remarks: updatedRemarks,
+          enrollmentType: current.enrollmentType,
+          curriculumVersion: current.curriculumVersion,
+          enrollmentDate: new Date(),
+          status: EnrollmentStatus.ACTIVE,
+          remarks: newRemarks,
         },
         select: {
           id: true,

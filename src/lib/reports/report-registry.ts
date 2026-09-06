@@ -1,10 +1,10 @@
-import { ReportDefinition } from './report-types';
+import { ReportDefinition } from './report-types.ts';
 
 import {
   executeStudentDirectoryReport,
   executeEnrollmentSummaryReport,
   executeStudentDemographicsReport,
-} from './queries/student-reports';
+} from './queries/student-reports.ts';
 
 import {
   executeResultSummaryReport,
@@ -12,7 +12,7 @@ import {
   executeClassPerformanceReport,
   executeStudentPerformanceReport,
   executeAtRiskStudentsReport,
-} from './queries/academic-reports';
+} from './queries/academic-reports.ts';
 
 import {
   executeDailyAttendanceReport,
@@ -20,7 +20,7 @@ import {
   executeStudentAttendanceSummaryReport,
   executeEmployeeAttendanceSummaryReport,
   executeAttendanceExceptionsReport,
-} from './queries/attendance-reports';
+} from './queries/attendance-reports.ts';
 
 import {
   executeFeeCollectionReport,
@@ -28,19 +28,19 @@ import {
   executePaymentMethodsReport,
   executeStudentLedgerReport,
   executeDiscountsReport,
-} from './queries/finance-reports';
+} from './queries/finance-reports.ts';
 
 import {
   executeEmployeeDirectoryReport,
   executeDepartmentSummaryReport,
   executePayrollSummaryReport,
   executeSalaryAdvanceReport,
-} from './queries/hr-reports';
+} from './queries/hr-reports.ts';
 
-import { executeAdmissionFunnelReport } from './queries/admission-reports';
-import { executeTransportUtilizationReport, executeTransportBoardingReport } from './queries/transport-reports';
-import { executeLibraryCirculationReport, executePopularBooksReport, executeLibraryFinesReport } from './queries/library-reports';
-import { executeInventoryStockSummaryReport, executeAssetRegisterValuationReport } from './queries/inventory-reports';
+import { executeAdmissionFunnelReport } from './queries/admission-reports.ts';
+import { executeTransportUtilizationReport, executeTransportBoardingReport } from './queries/transport-reports.ts';
+import { executeLibraryCirculationReport, executePopularBooksReport, executeLibraryFinesReport } from './queries/library-reports.ts';
+import { executeInventoryStockSummaryReport, executeAssetRegisterValuationReport } from './queries/inventory-reports.ts';
 
 /**
  * Authoritative Typed Registry of all reports in EduSmart BD.

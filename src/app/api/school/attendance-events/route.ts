@@ -22,15 +22,15 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '50', 10));
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (deviceId) where.deviceId = deviceId;
       if (status) where.processingStatus = status;
       if (identifierValue) where.identifierValue = { contains: identifierValue, mode: 'insensitive' };
 
       const [total, events] = await Promise.all([
-        prisma.rawAttendanceEvent.count({ where }),
-        prisma.rawAttendanceEvent.findMany({
+        tx.rawAttendanceEvent.count({ where }),
+        tx.rawAttendanceEvent.findMany({
           where,
           include: {
             device: { select: { id: true, deviceName: true, deviceSerial: true } },
@@ -81,9 +81,9 @@ export async function POST(request: NextRequest) {
     // Sort events deterministically by device occurrence timestamp (offline sync guarantee)
     const sortedEvents = sortEventsByOccurrence(eventsInput);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       // Fetch default attendance rule for the school
-      const defaultRuleRecord = await prisma.attendanceRule.findFirst({
+      const defaultRuleRecord = await tx.attendanceRule.findFirst({
         where: { schoolId, isDefault: true, isActive: true },
       });
 
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         const attendanceDate = new Date(dhakaDateStr);
 
         // 1. Check duplicate external event ID
-        const existingEvent = await prisma.rawAttendanceEvent.findFirst({
+        const existingEvent = await tx.rawAttendanceEvent.findFirst({
           where: {
             schoolId,
             deviceId: targetDeviceId,
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Insert raw event into raw_attendance_events (permanent forensic retention)
-        const rawEvent = await prisma.rawAttendanceEvent.create({
+        const rawEvent = await tx.rawAttendanceEvent.create({
           data: {
             schoolId,
             deviceId: targetDeviceId,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 
         // 3. Identity Resolution
         // A. Check Student
-        const student = await prisma.student.findFirst({
+        const student = await tx.student.findFirst({
           where: {
             schoolId,
             OR: [
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
           const evaluation = evaluateAttendanceStatus(dhakaTimeStr, ruleConfig);
 
           // Check if student attendance already recorded for this date
-          let studentAttendance = await prisma.studentAttendance.findFirst({
+          let studentAttendance = await tx.studentAttendance.findFirst({
             where: {
               schoolId,
               studentId: student.id,
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
           });
 
           if (!studentAttendance) {
-            studentAttendance = await prisma.studentAttendance.create({
+            studentAttendance = await tx.studentAttendance.create({
               data: {
                 schoolId,
                 studentId: student.id,
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
               },
             });
           } else if (ev.eventType === 'CHECK_OUT') {
-            studentAttendance = await prisma.studentAttendance.update({
+            studentAttendance = await tx.studentAttendance.update({
               where: { id: studentAttendance.id },
               data: {
                 checkOutTime: new Date(`1970-01-01T${dhakaTimeStr}Z`),
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          await prisma.rawAttendanceEvent.update({
+          await tx.rawAttendanceEvent.update({
             where: { id: rawEvent.id },
             data: {
               processingStatus: 'PROCESSED',
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
         }
 
         // B. Check Employee
-        const employee = await prisma.employee.findFirst({
+        const employee = await tx.employee.findFirst({
           where: {
             schoolId,
             OR: [
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
         if (employee) {
           const evaluation = evaluateAttendanceStatus(dhakaTimeStr, ruleConfig);
 
-          let empAttendance = await prisma.employeeAttendance.findFirst({
+          let empAttendance = await tx.employeeAttendance.findFirst({
             where: {
               schoolId,
               employeeId: employee.id,
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
           });
 
           if (!empAttendance) {
-            empAttendance = await prisma.employeeAttendance.create({
+            empAttendance = await tx.employeeAttendance.create({
               data: {
                 schoolId,
                 userId: employee.userId || context.userId,
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
               },
             });
           } else if (ev.eventType === 'CHECK_OUT') {
-            empAttendance = await prisma.employeeAttendance.update({
+            empAttendance = await tx.employeeAttendance.update({
               where: { id: empAttendance.id },
               data: {
                 checkOutTime: new Date(`1970-01-01T${dhakaTimeStr}Z`),
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          await prisma.rawAttendanceEvent.update({
+          await tx.rawAttendanceEvent.update({
             where: { id: rawEvent.id },
             data: {
               processingStatus: 'PROCESSED',
@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
         }
 
         // C. Neither Student nor Employee resolved
-        await prisma.rawAttendanceEvent.update({
+        await tx.rawAttendanceEvent.update({
           where: { id: rawEvent.id },
           data: {
             processingStatus: 'NEEDS_REVIEW',

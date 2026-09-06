@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { context, schoolId } = await requireActiveSchool(request);
 
-    return await withTenantContext(schoolId, async () => {
-      let pref = await prisma.notificationPreference.findUnique({
+    return await withTenantContext(schoolId, async (tx) => {
+      let pref = await tx.notificationPreference.findUnique({
         where: {
           schoolId_userId: {
             schoolId,
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (!pref) {
-        pref = await prisma.notificationPreference.create({
+        pref = await tx.notificationPreference.create({
           data: {
             schoolId,
             userId: context.userId,
@@ -42,8 +42,8 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validated = NotificationPreferenceUpdateSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
-      const updated = await prisma.notificationPreference.upsert({
+    return await withTenantContext(schoolId, async (tx) => {
+      const updated = await tx.notificationPreference.upsert({
         where: {
           schoolId_userId: {
             schoolId,

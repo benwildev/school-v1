@@ -12,8 +12,8 @@ export async function GET(
     const { assignmentId } = await context.params;
     const { schoolId } = await requirePermission(request, { permission: 'TRANSPORT_ASSIGNMENT_VIEW' });
 
-    const assignmentData = await withTenantContext(schoolId, async () => {
-      const assignment = await prisma.studentTransportAssignment.findFirst({
+    const assignmentData = await withTenantContext(schoolId, async (tx) => {
+      const assignment = await tx.studentTransportAssignment.findFirst({
         where: { id: assignmentId, schoolId },
         include: {
           student: {
@@ -53,7 +53,7 @@ export async function GET(
 
       if (!assignment) return null;
 
-      const boardingEvents = await prisma.transportBoardingEvent.findMany({
+      const boardingEvents = await tx.transportBoardingEvent.findMany({
         where: { studentId: assignment.studentId, schoolId },
         take: 20,
         orderBy: { eventTimestamp: 'desc' },
@@ -105,8 +105,8 @@ export async function PATCH(
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.studentTransportAssignment.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.studentTransportAssignment.findFirst({
         where: { id: assignmentId, schoolId },
       });
       if (!existing) {
@@ -142,7 +142,7 @@ export async function PATCH(
 
       // If stops are being updated, verify they belong to existing.routeId
       if (parsed.data.pickupStopId) {
-        const stop = await prisma.routeStop.findFirst({
+        const stop = await tx.routeStop.findFirst({
           where: { id: parsed.data.pickupStopId, routeId: existing.routeId, schoolId },
         });
         if (!stop) throw new Error('Pickup stop is invalid for this route');
@@ -150,14 +150,14 @@ export async function PATCH(
       }
 
       if (parsed.data.dropoffStopId) {
-        const stop = await prisma.routeStop.findFirst({
+        const stop = await tx.routeStop.findFirst({
           where: { id: parsed.data.dropoffStopId, routeId: existing.routeId, schoolId },
         });
         if (!stop) throw new Error('Dropoff stop is invalid for this route');
         updateData.dropoffStopId = parsed.data.dropoffStopId;
       }
 
-      return prisma.studentTransportAssignment.update({
+      return tx.studentTransportAssignment.update({
         where: { id: assignmentId },
         data: updateData,
         include: {
@@ -189,8 +189,8 @@ export async function DELETE(
     const { assignmentId } = await context.params;
     const { schoolId } = await requirePermission(request, { permission: 'TRANSPORT_ASSIGNMENT_REMOVE' });
 
-    const result = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.studentTransportAssignment.findFirst({
+    const result = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.studentTransportAssignment.findFirst({
         where: { id: assignmentId, schoolId },
       });
 
@@ -199,7 +199,7 @@ export async function DELETE(
       }
 
       // If there are recorded boarding events, do NOT hard delete. Transition status to CANCELLED
-      const boardingEventsCount = await prisma.transportBoardingEvent.count({
+      const boardingEventsCount = await tx.transportBoardingEvent.count({
         where: {
           studentId: existing.studentId,
           enrollmentId: existing.enrollmentId,
@@ -208,7 +208,7 @@ export async function DELETE(
       });
 
       if (boardingEventsCount > 0) {
-        return prisma.studentTransportAssignment.update({
+        return tx.studentTransportAssignment.update({
           where: { id: assignmentId },
           data: {
             status: 'CANCELLED',
@@ -217,7 +217,7 @@ export async function DELETE(
         });
       }
 
-      return prisma.studentTransportAssignment.delete({
+      return tx.studentTransportAssignment.delete({
         where: { id: assignmentId },
       });
     });

@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
     const driverEmployeeId = searchParams.get('driverEmployeeId');
     const activeOnly = searchParams.get('active') !== 'false';
 
-    const assignments = await withTenantContext(schoolId, async () => {
+    const assignments = await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (vehicleId) where.vehicleId = vehicleId;
       if (driverEmployeeId) where.driverEmployeeId = driverEmployeeId;
       if (activeOnly) where.isActive = true;
 
-      return prisma.vehicleDriverAssignment.findMany({
+      return tx.vehicleDriverAssignment.findMany({
         where,
         include: {
           vehicle: {
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const assignment = await withTenantContext(schoolId, async () => {
+    const assignment = await withTenantContext(schoolId, async (tx) => {
       // 1. Validate vehicle
-      const vehicle = await prisma.vehicle.findFirst({
+      const vehicle = await tx.vehicle.findFirst({
         where: { id: vehicleId, schoolId },
       });
       if (!vehicle) {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. Validate driver (must reuse Phase 7 Employee)
-      const driver = await prisma.employee.findFirst({
+      const driver = await tx.employee.findFirst({
         where: { id: driverEmployeeId, schoolId },
       });
       if (!driver) {
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
       // 3. Validate conductor if provided
       if (conductorEmployeeId) {
-        const conductor = await prisma.employee.findFirst({
+        const conductor = await tx.employee.findFirst({
           where: { id: conductorEmployeeId, schoolId },
         });
         if (!conductor) {
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
       // 4. Validate route if provided
       if (routeId) {
-        const route = await prisma.transportRoute.findFirst({
+        const route = await tx.transportRoute.findFirst({
           where: { id: routeId, schoolId },
         });
         if (!route) {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Deactivate previous active assignment for this vehicle if effectiveFrom matches or supersedes
-      await prisma.vehicleDriverAssignment.updateMany({
+      await tx.vehicleDriverAssignment.updateMany({
         where: {
           schoolId,
           vehicleId,
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       });
 
       // 6. Create effective-dated assignment
-      return prisma.vehicleDriverAssignment.create({
+      return tx.vehicleDriverAssignment.create({
         data: {
           schoolId,
           vehicleId,

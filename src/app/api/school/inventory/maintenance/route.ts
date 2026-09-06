@@ -10,11 +10,11 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const assetId = searchParams.get('assetId') || undefined;
 
-    const logs = await withTenantContext(schoolId, async () => {
+    const logs = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (assetId) whereClause.assetId = assetId;
 
-      return prisma.assetMaintenanceLog.findMany({
+      return tx.assetMaintenanceLog.findMany({
         where: whereClause,
         include: {
           asset: {
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const log = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const log = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         const asset = await tx.asset.findFirst({
           where: { id: assetId, schoolId },
         });

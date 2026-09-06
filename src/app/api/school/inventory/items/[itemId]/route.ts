@@ -12,8 +12,8 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'INVENTORY_VIEW' });
     const { itemId } = await params;
 
-    const item = await withTenantContext(schoolId, async () => {
-      return prisma.inventoryItem.findFirst({
+    const item = await withTenantContext(schoolId, async (tx) => {
+      return tx.inventoryItem.findFirst({
         where: { id: itemId, schoolId },
         include: {
           category: true,
@@ -74,13 +74,13 @@ export async function PATCH(
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.inventoryItem.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.inventoryItem.findFirst({
         where: { id: itemId, schoolId },
       });
       if (!existing) throw new Error('Inventory item not found');
 
-      return prisma.inventoryItem.update({
+      return tx.inventoryItem.update({
         where: { id: itemId },
         data: parsed.data,
       });

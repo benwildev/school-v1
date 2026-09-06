@@ -26,8 +26,8 @@ export async function POST(
 
     const { notes } = parsed.data;
 
-    const renewed = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const renewed = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         const loan = await tx.libraryLoan.findFirst({
           where: { id: loanId, schoolId },
           include: {

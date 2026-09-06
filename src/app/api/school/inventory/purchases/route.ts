@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const campusId = searchParams.get('campusId') || undefined;
 
-    const purchases = await withTenantContext(schoolId, async () => {
+    const purchases = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (supplierId) whereClause.supplierId = supplierId;
       if (status) whereClause.status = status;
       if (campusId) whereClause.campusId = campusId;
 
-      return prisma.inventoryPurchase.findMany({
+      return tx.inventoryPurchase.findMany({
         where: whereClause,
         include: {
           supplier: true,
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
       items,
     } = parsed.data;
 
-    const purchase = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const purchase = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         // 1. Verify supplier
         const supplier = await tx.inventorySupplier.findFirst({
           where: { id: supplierId, schoolId },

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const employeeId = searchParams.get('employeeId') || undefined;
     const copyId = searchParams.get('copyId') || undefined;
 
-    const loans = await withTenantContext(schoolId, async () => {
+    const loans = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (status) whereClause.status = status;
       if (borrowerType) whereClause.borrowerType = borrowerType;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       if (employeeId) whereClause.employeeId = employeeId;
       if (copyId) whereClause.copyId = copyId;
 
-      return prisma.libraryLoan.findMany({
+      return tx.libraryLoan.findMany({
         where: whereClause,
         include: {
           copy: {
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
 
     const { copyId, borrowerType, studentId, enrollmentId, employeeId, dueDate, notes } = parsed.data;
 
-    const newLoan = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const newLoan = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         // 1. Fetch library settings
         let settings = await tx.librarySetting.findUnique({ where: { schoolId } });
         if (!settings) {

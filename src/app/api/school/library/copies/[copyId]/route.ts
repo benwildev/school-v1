@@ -12,8 +12,8 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_VIEW' });
     const { copyId } = await params;
 
-    const copy = await withTenantContext(schoolId, async () => {
-      return prisma.libraryBookCopy.findFirst({
+    const copy = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryBookCopy.findFirst({
         where: { id: copyId, schoolId },
         include: {
           book: {
@@ -64,8 +64,8 @@ export async function PATCH(
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const copy = await prisma.libraryBookCopy.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const copy = await tx.libraryBookCopy.findFirst({
         where: { id: copyId, schoolId },
       });
       if (!copy) throw new Error('Book copy not found');
@@ -78,7 +78,7 @@ export async function PATCH(
         }
       }
 
-      return prisma.libraryBookCopy.update({
+      return tx.libraryBookCopy.update({
         where: { id: copyId },
         data: parsed.data,
       });

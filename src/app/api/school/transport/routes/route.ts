@@ -11,12 +11,12 @@ export async function GET(request: NextRequest) {
     const campusId = searchParams.get('campusId');
     const status = searchParams.get('status');
 
-    const routes = await withTenantContext(schoolId, async () => {
+    const routes = await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (campusId) where.campusId = campusId;
       if (status) where.status = status;
 
-      return prisma.transportRoute.findMany({
+      return tx.transportRoute.findMany({
         where,
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
 
     const { campusId, routeCode, routeName, description, status } = parsed.data;
 
-    const route = await withTenantContext(schoolId, async () => {
+    const route = await withTenantContext(schoolId, async (tx) => {
       if (campusId) {
-        const campus = await prisma.campus.findFirst({
+        const campus = await tx.campus.findFirst({
           where: { id: campusId, schoolId },
         });
         if (!campus) {
@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const existingCode = await prisma.transportRoute.findFirst({
+      const existingCode = await tx.transportRoute.findFirst({
         where: { schoolId, routeCode },
       });
       if (existingCode) {
         throw new Error(`Route code "${routeCode}" already exists in this school.`);
       }
 
-      return prisma.transportRoute.create({
+      return tx.transportRoute.create({
         data: {
           schoolId,
           campusId: campusId || null,

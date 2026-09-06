@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_REPORT_VIEW' });
 
-    const stats = await withTenantContext(schoolId, async () => {
+    const stats = await withTenantContext(schoolId, async (tx) => {
       const [
         totalBooks,
         totalCopies,
@@ -20,23 +20,23 @@ export async function GET(request: NextRequest) {
         pendingReservations,
         fines,
       ] = await Promise.all([
-        prisma.libraryBook.count({ where: { schoolId } }),
-        prisma.libraryBookCopy.count({ where: { schoolId } }),
-        prisma.libraryBookCopy.count({ where: { schoolId, status: 'AVAILABLE' } }),
-        prisma.libraryBookCopy.count({ where: { schoolId, status: 'ISSUED' } }),
-        prisma.libraryBookCopy.count({ where: { schoolId, status: 'LOST' } }),
-        prisma.libraryBookCopy.count({ where: { schoolId, status: 'DAMAGED' } }),
-        prisma.libraryLoan.count({ where: { schoolId } }),
-        prisma.libraryLoan.count({ where: { schoolId, status: { in: ['ISSUED', 'OVERDUE'] } } }),
-        prisma.libraryLoan.count({
+        tx.libraryBook.count({ where: { schoolId } }),
+        tx.libraryBookCopy.count({ where: { schoolId } }),
+        tx.libraryBookCopy.count({ where: { schoolId, status: 'AVAILABLE' } }),
+        tx.libraryBookCopy.count({ where: { schoolId, status: 'ISSUED' } }),
+        tx.libraryBookCopy.count({ where: { schoolId, status: 'LOST' } }),
+        tx.libraryBookCopy.count({ where: { schoolId, status: 'DAMAGED' } }),
+        tx.libraryLoan.count({ where: { schoolId } }),
+        tx.libraryLoan.count({ where: { schoolId, status: { in: ['ISSUED', 'OVERDUE'] } } }),
+        tx.libraryLoan.count({
           where: {
             schoolId,
             status: { in: ['ISSUED', 'OVERDUE'] },
             dueDate: { lt: new Date() },
           },
         }),
-        prisma.libraryReservation.count({ where: { schoolId, status: 'PENDING' } }),
-        prisma.libraryFine.findMany({
+        tx.libraryReservation.count({ where: { schoolId, status: 'PENDING' } }),
+        tx.libraryFine.findMany({
           where: { schoolId },
           select: { fineAmount: true, paidAmount: true, waivedAmount: true, status: true },
         }),
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       const totalFineUnpaid = Math.max(0, totalFineAssessed - totalFinePaid - totalFineWaived);
 
       // Top borrowed books
-      const popularCopies = await prisma.libraryLoan.groupBy({
+      const popularCopies = await tx.libraryLoan.groupBy({
         by: ['copyId'],
         where: { schoolId },
         _count: { id: true },

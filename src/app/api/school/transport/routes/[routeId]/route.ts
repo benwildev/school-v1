@@ -11,8 +11,8 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'ROUTES_VIEW' });
     const { routeId } = await params;
 
-    const route = await withTenantContext(schoolId, async () => {
-      return prisma.transportRoute.findFirst({
+    const route = await withTenantContext(schoolId, async (tx) => {
+      return tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -57,15 +57,15 @@ export async function PATCH(
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.transportRoute.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
       });
       if (!existing) {
         throw new Error('Route not found in this school.');
       }
 
-      return prisma.transportRoute.update({
+      return tx.transportRoute.update({
         where: { id: routeId },
         data: parsed.data,
       });
@@ -90,8 +90,8 @@ export async function DELETE(
     const { schoolId } = await requirePermission(request, { permission: 'ROUTES_UPDATE' });
     const { routeId } = await params;
 
-    const result = await withTenantContext(schoolId, async () => {
-      const route = await prisma.transportRoute.findFirst({
+    const result = await withTenantContext(schoolId, async (tx) => {
+      const route = await tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
         include: {
           _count: {
@@ -105,7 +105,7 @@ export async function DELETE(
       }
 
       if (route._count.trips > 0 || route._count.studentAssignments > 0) {
-        await prisma.transportRoute.update({
+        await tx.transportRoute.update({
           where: { id: routeId },
           data: { status: 'ARCHIVED' },
         });
@@ -115,7 +115,7 @@ export async function DELETE(
         };
       }
 
-      await prisma.transportRoute.delete({
+      await tx.transportRoute.delete({
         where: { id: routeId },
       });
 

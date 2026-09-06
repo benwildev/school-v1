@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getAuthSecret } from '@/lib/env';
 
 const SESSION_COOKIE_NAME = '__edusmart_session';
-const AUTH_SECRET = process.env.AUTH_SECRET || 'edusmart-bd-dev-secret-key-at-least-32-chars-long!';
-const encodedKey = new TextEncoder().encode(AUTH_SECRET);
 
 const PUBLIC_PATHS = [
+  '/',
   '/login',
+  '/unauthorized',
   '/api/auth/login',
   '/favicon.ico',
   '/robots.txt',
   '/sitemap.xml',
 ];
 
+function isPublicRoute(pathname: string): boolean {
+  if (PUBLIC_PATHS.includes(pathname)) {
+    return true;
+  }
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/static') ||
+    pathname.startsWith('/admissions') ||
+    pathname.startsWith('/invitations') ||
+    pathname.startsWith('/api/public')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // 1. Allow public routes and static assets
-  if (
-    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith('/_next') || pathname.startsWith('/static'))
-  ) {
+  if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 
@@ -44,7 +59,7 @@ export async function middleware(req: NextRequest) {
 
   // 4. Verify Token at Edge
   try {
-    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
+    const { payload } = await jwtVerify(token, getAuthSecret(), { algorithms: ['HS256'] });
 
     const userId = payload.userId as string;
     const activeSchoolId = (payload.activeSchoolId as string) || '';

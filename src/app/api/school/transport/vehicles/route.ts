@@ -11,12 +11,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const campusId = searchParams.get('campusId');
 
-    const vehicles = await withTenantContext(schoolId, async () => {
+    const vehicles = await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (status) where.status = status;
       if (campusId) where.campusId = campusId;
 
-      return prisma.vehicle.findMany({
+      return tx.vehicle.findMany({
         where,
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -66,10 +66,10 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const vehicle = await withTenantContext(schoolId, async () => {
+    const vehicle = await withTenantContext(schoolId, async (tx) => {
       // Validate campus if provided
       if (campusId) {
-        const campus = await prisma.campus.findFirst({
+        const campus = await tx.campus.findFirst({
           where: { id: campusId, schoolId },
         });
         if (!campus) {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check unique registrationNumber within school
-      const existingReg = await prisma.vehicle.findFirst({
+      const existingReg = await tx.vehicle.findFirst({
         where: { schoolId, registrationNumber },
       });
       if (existingReg) {
@@ -86,14 +86,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Check unique vehicleCode within school
-      const existingCode = await prisma.vehicle.findFirst({
+      const existingCode = await tx.vehicle.findFirst({
         where: { schoolId, vehicleCode },
       });
       if (existingCode) {
         throw new Error(`Vehicle code "${vehicleCode}" already exists in this school.`);
       }
 
-      return prisma.vehicle.create({
+      return tx.vehicle.create({
         data: {
           schoolId,
           campusId: campusId || null,

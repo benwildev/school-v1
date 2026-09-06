@@ -12,8 +12,8 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_VIEW' });
     const { bookId } = await params;
 
-    const book = await withTenantContext(schoolId, async () => {
-      return prisma.libraryBook.findFirst({
+    const book = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryBook.findFirst({
         where: { id: bookId, schoolId },
         include: {
           category: true,
@@ -86,13 +86,13 @@ export async function PATCH(
       }
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.libraryBook.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.libraryBook.findFirst({
         where: { id: bookId, schoolId },
       });
       if (!existing) throw new Error('Book not found');
 
-      return prisma.libraryBook.update({
+      return tx.libraryBook.update({
         where: { id: bookId },
         data: parsed.data,
       });
@@ -113,8 +113,8 @@ export async function DELETE(
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_DELETE' });
     const { bookId } = await params;
 
-    await withTenantContext(schoolId, async () => {
-      const book = await prisma.libraryBook.findFirst({
+    await withTenantContext(schoolId, async (tx) => {
+      const book = await tx.libraryBook.findFirst({
         where: { id: bookId, schoolId },
         include: {
           _count: {
@@ -133,7 +133,7 @@ export async function DELETE(
         throw new Error(`Cannot delete book with active reservations.`);
       }
 
-      await prisma.libraryBook.delete({
+      await tx.libraryBook.delete({
         where: { id: bookId },
       });
     });

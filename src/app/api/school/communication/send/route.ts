@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       // 2. Idempotency safeguard
       if (validated.idempotencyKey) {
-        const existingLog = await prisma.messageLog.findFirst({
+        const existingLog = await tx.messageLog.findFirst({
           where: { schoolId, idempotencyKey: validated.idempotencyKey },
         });
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         failureReason = sendRes.failureReason;
       } else if (validated.channel === 'IN_APP') {
         if (validated.userId) {
-          await prisma.notification.create({
+          await tx.notification.create({
             data: {
               schoolId,
               userId: validated.userId,
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 4. Log message dispatch in message_logs
-      const log = await prisma.messageLog.create({
+      const log = await tx.messageLog.create({
         data: {
           schoolId,
           channel: validated.channel,

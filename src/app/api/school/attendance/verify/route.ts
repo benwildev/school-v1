@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = AttendanceVerificationSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       let updatedCount = 0;
 
       if (validated.attendanceType === 'STUDENT') {
-        const updateResult = await prisma.studentAttendance.updateMany({
+        const updateResult = await tx.studentAttendance.updateMany({
           where: {
             schoolId,
             id: { in: validated.attendanceIds },
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         });
         updatedCount = updateResult.count;
       } else {
-        const updateResult = await prisma.employeeAttendance.updateMany({
+        const updateResult = await tx.employeeAttendance.updateMany({
           where: {
             schoolId,
             id: { in: validated.attendanceIds },

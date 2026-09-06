@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
     const schoolId = guardian.schoolId;
     const linkedStudentIds = guardian.students.map((s: any) => s.student.id);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       // Fetch notifications and message logs for linked children and guardian
       const [notifications, messages] = await Promise.all([
-        prisma.notification.findMany({
+        tx.notification.findMany({
           where: {
             schoolId,
             userId: context.userId,
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
           take: 50,
         }),
-        prisma.messageLog.findMany({
+        tx.messageLog.findMany({
           where: {
             schoolId,
             OR: [

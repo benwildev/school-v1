@@ -14,8 +14,8 @@ export async function POST(
     const { deviceId } = await params;
     const { context, schoolId } = await requirePermission(request, { permission: 'ATTENDANCE_DEVICE_SYNC' });
 
-    return await withTenantContext(schoolId, async () => {
-      const device = await prisma.biometricDevice.findFirst({
+    return await withTenantContext(schoolId, async (tx) => {
+      const device = await tx.biometricDevice.findFirst({
         where: { id: deviceId, schoolId },
       });
 
@@ -43,7 +43,7 @@ export async function POST(
         settings: (device.settings as Record<string, any>) || {},
       });
 
-      const updated = await prisma.biometricDevice.update({
+      const updated = await tx.biometricDevice.update({
         where: { id: deviceId },
         data: {
           lastSyncAt: new Date(),

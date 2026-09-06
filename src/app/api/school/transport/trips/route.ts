@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const tripType = searchParams.get('tripType');
 
-    const trips = await withTenantContext(schoolId, async () => {
+    const trips = await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (tripDate) {
         const start = new Date(tripDate);
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       if (status) where.status = status;
       if (tripType) where.tripType = tripType;
 
-      return prisma.transportTrip.findMany({
+      return tx.transportTrip.findMany({
         where,
         include: {
           route: { select: { id: true, routeCode: true, routeName: true } },
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const trip = await withTenantContext(schoolId, async () => {
+    const trip = await withTenantContext(schoolId, async (tx) => {
       // 1. Verify Route
-      const route = await prisma.transportRoute.findFirst({
+      const route = await tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
       });
       if (!route) {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. Verify Vehicle
-      const vehicle = await prisma.vehicle.findFirst({
+      const vehicle = await tx.vehicle.findFirst({
         where: { id: vehicleId, schoolId },
       });
       if (!vehicle) {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 3. Verify Driver Employee
-      const driver = await prisma.employee.findFirst({
+      const driver = await tx.employee.findFirst({
         where: { id: driverEmployeeId, schoolId, status: 'ACTIVE' },
       });
       if (!driver) {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
       // 4. Verify Conductor Employee if provided
       if (conductorEmployeeId) {
-        const conductor = await prisma.employee.findFirst({
+        const conductor = await tx.employee.findFirst({
           where: { id: conductorEmployeeId, schoolId, status: 'ACTIVE' },
         });
         if (!conductor) {
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return prisma.transportTrip.create({
+      return tx.transportTrip.create({
         data: {
           schoolId,
           routeId,

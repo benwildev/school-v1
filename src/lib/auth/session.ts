@@ -1,13 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { generateSecureId } from './crypto.ts';
 import { getSessionRevocationStore } from './revocation-store.ts';
+import { getAuthSecret } from '../env.ts';
 
 export const SESSION_COOKIE_NAME = '__edusmart_session';
 export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 Days
-
-// In production, AUTH_SECRET must be defined in environment
-const AUTH_SECRET = process.env.AUTH_SECRET || 'edusmart-bd-dev-secret-key-at-least-32-chars-long!';
-const encodedKey = new TextEncoder().encode(AUTH_SECRET);
 
 export interface SessionPayload {
   userId: string;
@@ -75,7 +72,7 @@ export async function createSessionToken(params: {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(issuedAt)
     .setExpirationTime(expiresAtEpoch)
-    .sign(encodedKey);
+    .sign(getAuthSecret());
 
   return { token, sessionId, expiresAt };
 }
@@ -86,7 +83,7 @@ export async function createSessionToken(params: {
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, encodedKey, {
+    const { payload } = await jwtVerify(token, getAuthSecret(), {
       algorithms: ['HS256'],
     });
 

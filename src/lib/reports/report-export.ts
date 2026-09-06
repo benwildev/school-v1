@@ -13,12 +13,21 @@ export { generateCsv, generatePrintHtml };
 export async function exportReport(options: ExportReportOptions): Promise<ExportReportResult> {
   const { context, schoolId, reportId, format, rawFilters = {}, ipAddress, userAgent } = options;
 
-  // 1. Execute report with exact security, RLS, and scope enforcement
+  // 1. Execute report with exact security, RLS, scope enforcement, and full untruncated export limit
+  let exportFilters: any;
+  if (rawFilters instanceof URLSearchParams) {
+    exportFilters = new URLSearchParams(rawFilters);
+    exportFilters.set('isExport', 'true');
+    exportFilters.set('format', format);
+  } else {
+    exportFilters = { ...rawFilters, isExport: true, format };
+  }
+
   const execution = await executeReport({
     context,
     schoolId,
     reportId,
-    rawFilters,
+    rawFilters: exportFilters,
     skipCache: true, // Exports must always fetch authoritative data
   });
 

@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_VIEW' });
 
-    const categories = await withTenantContext(schoolId, async () => {
-      return prisma.libraryCategory.findMany({
+    const categories = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryCategory.findMany({
         where: { schoolId },
         include: {
           _count: { select: { books: true } },
@@ -39,15 +39,15 @@ export async function POST(request: NextRequest) {
 
     const { code, nameEn, nameBn, description } = parsed.data;
 
-    const category = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.libraryCategory.findFirst({
+    const category = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.libraryCategory.findFirst({
         where: { schoolId, code },
       });
       if (existing) {
         throw new Error(`Category code "${code}" already exists in this school.`);
       }
 
-      return prisma.libraryCategory.create({
+      return tx.libraryCategory.create({
         data: {
           schoolId,
           code,

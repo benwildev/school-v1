@@ -25,8 +25,10 @@ export const ReportFilterSchema = z.object({
   search: z.string().max(100).optional(),
   sortBy: z.string().max(50).optional(),
   sortOrder: z.enum(['ASC', 'DESC']).default('ASC'),
+  format: z.string().max(20).optional(),
+  isExport: z.coerce.boolean().optional().default(false),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(500).default(50),
+  limit: z.coerce.number().int().min(1).max(50000).default(50),
 });
 
 /**
@@ -77,9 +79,20 @@ export function applyScopeFilterConstraints(
     constrainedFilters.campusId = userCampusId;
   }
 
-  // 2. Default date bounds if not provided for time-series reports
+  // 2. Pagination & Export Truncation Protection:
+  // UI browsing defaults to 50 rows per page; exports must fetch complete datasets (up to 10,000 rows).
+  const isExportRequest = Boolean(
+    constrainedFilters.isExport ||
+    constrainedFilters.format ||
+    (ctx as any).isExport
+  );
+
   if (!constrainedFilters.page) constrainedFilters.page = 1;
-  if (!constrainedFilters.limit) constrainedFilters.limit = 50;
+  if (!constrainedFilters.limit) {
+    constrainedFilters.limit = isExportRequest ? 10000 : 50;
+  } else if (isExportRequest && constrainedFilters.limit === 50) {
+    constrainedFilters.limit = 10000;
+  }
 
   return constrainedFilters;
 }

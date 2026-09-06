@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       // 2. Idempotency safeguard
-      const existingCampaign = await prisma.communicationCampaign.findUnique({
+      const existingCampaign = await tx.communicationCampaign.findUnique({
         where: {
           schoolId_idempotencyKey: {
             schoolId,
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       // 3. Resolve template or custom body
       let templateText = validated.customBody || '';
       if (validated.templateId) {
-        const tpl = await prisma.notificationTemplate.findFirst({
+        const tpl = await tx.notificationTemplate.findFirst({
           where: { id: validated.templateId, schoolId },
         });
         if (tpl) {
@@ -56,14 +56,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Either customBody or a valid templateId is required' }, { status: 400 });
       }
 
-      const school = await prisma.school.findUnique({ where: { id: schoolId } });
+      const school = await tx.school.findUnique({ where: { id: schoolId } });
       const schoolName = school?.nameEn || 'EduSmart BD';
 
       // 4. Resolve Recipients
       const recipients: CampaignRecipient[] = [];
 
       if (validated.targetAudience === 'ALL_STUDENTS') {
-        const students = await prisma.student.findMany({
+        const students = await tx.student.findMany({
           where: { schoolId, status: 'ACTIVE', deletedAt: null },
           select: { id: true, fullNameEn: true, phone: true },
         });
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           recipients.push({ recipientId: s.id, name: s.fullNameEn, phone: s.phone || undefined });
         }
       } else if (validated.targetAudience === 'ALL_GUARDIANS') {
-        const guardians = await prisma.guardian.findMany({
+        const guardians = await tx.guardian.findMany({
           where: { schoolId },
           select: { id: true, fullNameEn: true, phone: true, email: true },
         });
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           recipients.push({ recipientId: g.id, name: g.fullNameEn, phone: g.phone || undefined, email: g.email || undefined });
         }
       } else if (validated.targetAudience === 'ALL_STAFF') {
-        const staff = await prisma.employee.findMany({
+        const staff = await tx.employee.findMany({
           where: { schoolId, status: 'ACTIVE', deletedAt: null },
           select: { id: true, fullNameEn: true, phone: true, email: true },
         });
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           recipients.push({ recipientId: e.id, name: e.fullNameEn, phone: e.phone || undefined, email: e.email || undefined });
         }
       } else if (validated.targetAudience === 'CLASS' && validated.targetFilter.classId) {
-        const enrollments = await prisma.enrollment.findMany({
+        const enrollments = await tx.enrollment.findMany({
           where: { schoolId, classId: validated.targetFilter.classId, status: 'ACTIVE' },
           include: { student: { select: { id: true, fullNameEn: true, phone: true } } },
         });
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           recipients.push({ recipientId: enr.student.id, name: enr.student.fullNameEn, phone: enr.student.phone || undefined });
         }
       } else if (validated.targetAudience === 'SECTION' && validated.targetFilter.sectionId) {
-        const enrollments = await prisma.enrollment.findMany({
+        const enrollments = await tx.enrollment.findMany({
           where: { schoolId, sectionId: validated.targetFilter.sectionId, status: 'ACTIVE' },
           include: { student: { select: { id: true, fullNameEn: true, phone: true } } },
         });
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           recipients.push({ recipientId: enr.student.id, name: enr.student.fullNameEn, phone: enr.student.phone || undefined });
         }
       } else if (validated.targetAudience === 'CUSTOM' && validated.targetFilter.recipientIds) {
-        const students = await prisma.student.findMany({
+        const students = await tx.student.findMany({
           where: { schoolId, id: { in: validated.targetFilter.recipientIds } },
           select: { id: true, fullNameEn: true, phone: true },
         });
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Create Campaign Record
-      const campaign = await prisma.communicationCampaign.create({
+      const campaign = await tx.communicationCampaign.create({
         data: {
           schoolId,
           name: validated.name,
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 
       // 7. Insert Message Logs
       if (dispatchResult.logs.length > 0) {
-        await prisma.messageLog.createMany({
+        await tx.messageLog.createMany({
           data: dispatchResult.logs.map((l) => ({
             schoolId,
             campaignId: campaign.id,
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 8. Finalize Campaign
-      const updatedCampaign = await prisma.communicationCampaign.update({
+      const updatedCampaign = await tx.communicationCampaign.update({
         where: { id: campaign.id },
         data: {
           sentCount: dispatchResult.sent,

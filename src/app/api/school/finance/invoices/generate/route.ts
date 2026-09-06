@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { InvoiceGenerateBatchSchema } from '@/lib/validation/finance';
 import { generateInvoiceNumber, calculateEffectiveDiscount } from '@/lib/finance/invoice';
+import { enqueueFeeNoticeNotifications } from '@/lib/communication/event-triggers';
 import { AuditAction } from '@prisma/client';
 
 /**
@@ -183,6 +184,22 @@ export async function POST(request: NextRequest) {
       }
       return results;
     });
+
+    // Enqueue fee notices asynchronously under school tenant scoping
+    if (createdInvoices.length > 0) {
+      enqueueFeeNoticeNotifications(
+        schoolId,
+        createdInvoices.map((inv) => ({
+          id: inv.id,
+          studentId: inv.studentId,
+          invoiceNumber: inv.invoiceNumber,
+          netAmount: inv.netAmount,
+          dueDate: inv.dueDate,
+        }))
+      ).catch((err) => {
+        console.error('Failed to enqueue fee notice notifications:', err);
+      });
+    }
 
     // 6. Forensic audit log
     await logAuditEvent({

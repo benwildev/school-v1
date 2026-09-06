@@ -12,8 +12,8 @@ export async function GET(
     const { tripId } = await context.params;
     const { schoolId } = await requirePermission(request, { permission: 'TRIP_VIEW' });
 
-    const trip = await withTenantContext(schoolId, async () => {
-      return prisma.transportTrip.findFirst({
+    const trip = await withTenantContext(schoolId, async (tx) => {
+      return tx.transportTrip.findFirst({
         where: { id: tripId, schoolId },
         include: {
           route: {
@@ -102,8 +102,8 @@ export async function PATCH(
 
     const { status: nextStatus, cancellationReason } = parsed.data;
 
-    const updatedTrip = await withTenantContext(schoolId, async () => {
-      const trip = await prisma.transportTrip.findFirst({
+    const updatedTrip = await withTenantContext(schoolId, async (tx) => {
+      const trip = await tx.transportTrip.findFirst({
         where: { id: tripId, schoolId },
       });
 
@@ -137,7 +137,7 @@ export async function PATCH(
           : `[Cancelled]: ${cancellationReason}`;
       }
 
-      return prisma.transportTrip.update({
+      return tx.transportTrip.update({
         where: { id: tripId },
         data: updateData,
         include: {
@@ -168,8 +168,8 @@ export async function DELETE(
     const { tripId } = await context.params;
     const { schoolId } = await requirePermission(request, { permission: 'TRIP_CANCEL' });
 
-    const result = await withTenantContext(schoolId, async () => {
-      const trip = await prisma.transportTrip.findFirst({
+    const result = await withTenantContext(schoolId, async (tx) => {
+      const trip = await tx.transportTrip.findFirst({
         where: { id: tripId, schoolId },
         include: {
           _count: { select: { boardingEvents: true } },
@@ -186,13 +186,13 @@ export async function DELETE(
 
       if (trip._count.boardingEvents > 0) {
         // Soft cancel instead of deleting to preserve boarding logs
-        return prisma.transportTrip.update({
+        return tx.transportTrip.update({
           where: { id: tripId },
           data: { status: 'CANCELLED' },
         });
       }
 
-      return prisma.transportTrip.delete({
+      return tx.transportTrip.delete({
         where: { id: tripId },
       });
     });

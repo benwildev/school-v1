@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '50', 10));
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       const where: any = {
         schoolId,
         userId: context.userId,
@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
       if (unreadOnly) where.isRead = false;
 
       const [unreadCount, notifications] = await Promise.all([
-        prisma.notification.count({ where: { schoolId, userId: context.userId, isRead: false } }),
-        prisma.notification.findMany({
+        tx.notification.count({ where: { schoolId, userId: context.userId, isRead: false } }),
+        tx.notification.findMany({
           where,
           orderBy: { createdAt: 'desc' },
           take: limit,
@@ -64,9 +64,9 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const validated = MarkReadSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       if (validated.markAll) {
-        const res = await prisma.notification.updateMany({
+        const res = await tx.notification.updateMany({
           where: { schoolId, userId: context.userId, isRead: false },
           data: { isRead: true, readAt: new Date() },
         });
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest) {
       }
 
       if (validated.notificationId) {
-        const notif = await prisma.notification.findFirst({
+        const notif = await tx.notification.findFirst({
           where: { id: validated.notificationId, schoolId, userId: context.userId },
         });
 
@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest) {
           return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
         }
 
-        const updated = await prisma.notification.update({
+        const updated = await tx.notification.update({
           where: { id: notif.id },
           data: { isRead: true, readAt: new Date() },
         });
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = CreateNotificationSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
-      const notif = await prisma.notification.create({
+    return await withTenantContext(schoolId, async (tx) => {
+      const notif = await tx.notification.create({
         data: {
           schoolId,
           userId: validated.recipientUserId,

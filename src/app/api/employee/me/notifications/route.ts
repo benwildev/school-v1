@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
 
     const schoolId = employee.schoolId;
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       const [notifications, messages] = await Promise.all([
-        prisma.notification.findMany({
+        tx.notification.findMany({
           where: {
             schoolId,
             userId: context.userId,
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
           take: 50,
         }),
-        prisma.messageLog.findMany({
+        tx.messageLog.findMany({
           where: {
             schoolId,
             recipientPhone: employee.phone,

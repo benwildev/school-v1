@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'LIBRARY_VIEW' });
 
-    const authors = await withTenantContext(schoolId, async () => {
-      return prisma.libraryAuthor.findMany({
+    const authors = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryAuthor.findMany({
         where: { schoolId },
         include: {
           _count: { select: { books: true } },
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
 
     const { nameEn, nameBn, bio } = parsed.data;
 
-    const author = await withTenantContext(schoolId, async () => {
-      return prisma.libraryAuthor.create({
+    const author = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryAuthor.create({
         data: {
           schoolId,
           nameEn,

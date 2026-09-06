@@ -17,13 +17,13 @@ export async function GET(request: NextRequest) {
     const campusId = searchParams.get('campusId') || undefined;
     const movementType = (searchParams.get('movementType') as any) || undefined;
 
-    const movements = await withTenantContext(schoolId, async () => {
+    const movements = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (itemId) whereClause.itemId = itemId;
       if (campusId) whereClause.campusId = campusId;
       if (movementType) whereClause.movementType = movementType;
 
-      return prisma.stockMovement.findMany({
+      return tx.stockMovement.findMany({
         where: whereClause,
         include: {
           item: {
@@ -75,49 +75,54 @@ export async function POST(request: NextRequest) {
 
     const { schoolId, context } = await requirePermission(request, { permission: requiredPermission });
 
-    const movement = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
-        // Verify item exists
-        const item = await tx.inventoryItem.findFirst({
-          where: { id: itemId, schoolId },
+    const movement = await withTenantContext(schoolId, async (tx) => {
+      // 1. Lock item row to serialize concurrent stock movements on the same item
+      await tx.$queryRaw`
+        SELECT id FROM inventory_items 
+        WHERE id = ${itemId}::uuid AND school_id = ${schoolId}::uuid 
+        FOR UPDATE
+      `;
+
+      // Verify item exists
+      const item = await tx.inventoryItem.findFirst({
+        where: { id: itemId, schoolId },
+      });
+      if (!item) throw new Error('Inventory item not found');
+
+      // If outbound movement, check stock availability under row lock
+      if (isStockOutMovement(movementType)) {
+        const pastMovements = await tx.stockMovement.findMany({
+          where: { schoolId, itemId, campusId },
+          select: { movementType: true, quantity: true },
         });
-        if (!item) throw new Error('Inventory item not found');
 
-        // If outbound movement, check stock availability
-        if (isStockOutMovement(movementType)) {
-          const pastMovements = await tx.stockMovement.findMany({
-            where: { schoolId, itemId, campusId },
-            select: { movementType: true, quantity: true },
-          });
-
-          const currentStock = calculateCurrentStock(pastMovements);
-          const check = validateStockAvailability(currentStock, quantity);
-          if (!check.available) {
-            throw new Error(check.error || 'Insufficient stock for this outbound movement.');
-          }
+        const currentStock = calculateCurrentStock(pastMovements);
+        const check = validateStockAvailability(currentStock, quantity);
+        if (!check.available) {
+          throw new Error(check.error || 'Insufficient stock for this outbound movement.');
         }
+      }
 
-        return tx.stockMovement.create({
-          data: {
-            schoolId,
-            itemId,
-            campusId,
-            movementType,
-            quantity,
-            unitCost: unitCost || 0,
-            sourceCampusId: sourceCampusId || null,
-            destinationCampusId: destinationCampusId || null,
-            recipientEmployeeId: recipientEmployeeId || null,
-            referenceType: referenceType || null,
-            referenceId: referenceId || null,
-            notes: notes || null,
-            createdById: context.userId,
-          },
-          include: {
-            item: true,
-            campus: true,
-          },
-        });
+      return tx.stockMovement.create({
+        data: {
+          schoolId,
+          itemId,
+          campusId,
+          movementType,
+          quantity,
+          unitCost: unitCost || 0,
+          sourceCampusId: sourceCampusId || null,
+          destinationCampusId: destinationCampusId || null,
+          recipientEmployeeId: recipientEmployeeId || null,
+          referenceType: referenceType || null,
+          referenceId: referenceId || null,
+          notes: notes || null,
+          createdById: context.userId,
+        },
+        include: {
+          item: true,
+          campus: true,
+        },
       });
     });
 

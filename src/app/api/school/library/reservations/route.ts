@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get('studentId') || undefined;
     const employeeId = searchParams.get('employeeId') || undefined;
 
-    const reservations = await withTenantContext(schoolId, async () => {
+    const reservations = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (bookId) whereClause.bookId = bookId;
       if (status) whereClause.status = status;
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       if (studentId) whereClause.studentId = studentId;
       if (employeeId) whereClause.employeeId = employeeId;
 
-      return prisma.libraryReservation.findMany({
+      return tx.libraryReservation.findMany({
         where: whereClause,
         include: {
           book: {
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
 
     const { bookId, borrowerType, studentId, employeeId, notes } = parsed.data;
 
-    const reservation = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const reservation = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         let settings = await tx.librarySetting.findUnique({ where: { schoolId } });
         if (!settings) {
           settings = await tx.librarySetting.create({ data: { schoolId } });
@@ -136,13 +136,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const reservation = await prisma.libraryReservation.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const reservation = await tx.libraryReservation.findFirst({
         where: { id: reservationId, schoolId },
       });
       if (!reservation) throw new Error('Reservation not found');
 
-      return prisma.libraryReservation.update({
+      return tx.libraryReservation.update({
         where: { id: reservationId },
         data: {
           status,

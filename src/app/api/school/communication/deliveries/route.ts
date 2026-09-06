@@ -13,15 +13,15 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '50', 10));
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (channel) where.channel = channel;
       if (deliveryStatus) where.deliveryStatus = deliveryStatus;
       if (campaignId) where.campaignId = campaignId;
 
       const [total, deliveries] = await Promise.all([
-        prisma.messageLog.count({ where }),
-        prisma.messageLog.findMany({
+        tx.messageLog.count({ where }),
+        tx.messageLog.findMany({
           where,
           include: {
             student: { select: { id: true, studentCode: true, fullNameEn: true } },

@@ -100,27 +100,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Prevent teachers from editing APPROVED or PUBLISHED marks
-    const isAdmin = await isAdministrativeStaff(context.userId, schoolId);
-    if (!isAdmin) {
-      const existingLockedMarks = await prisma.mark.findMany({
-        where: {
-          schoolId,
-          examId,
-          subjectId,
-          enrollmentId: { in: enrollmentIds },
-          status: { in: [MarkWorkflowStatus.APPROVED, MarkWorkflowStatus.PUBLISHED] },
-        },
-      });
+    // 5. Prevent editing of APPROVED or PUBLISHED marks without prior administrative unlock
+    const existingLockedMarks = await prisma.mark.findMany({
+      where: {
+        schoolId,
+        examId,
+        subjectId,
+        enrollmentId: { in: enrollmentIds },
+        status: { in: [MarkWorkflowStatus.APPROVED, MarkWorkflowStatus.PUBLISHED] },
+      },
+    });
 
-      if (existingLockedMarks.length > 0) {
-        return NextResponse.json(
-          {
-            error: 'Cannot edit marks that have already been approved or published. Contact administrative staff for revisions.',
-          },
-          { status: 403 }
-        );
-      }
+    if (existingLockedMarks.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Cannot edit marks that have already been approved or published. An administrator must explicitly unlock/revert them to DRAFT before modifications.',
+        },
+        { status: 403 }
+      );
     }
 
     const targetWorkflowStatus = isSubmission

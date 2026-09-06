@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'ATTENDANCE_VIEW' });
 
-    return await withTenantContext(schoolId, async () => {
-      const rules = await prisma.attendanceRule.findMany({
+    return await withTenantContext(schoolId, async (tx) => {
+      const rules = await tx.attendanceRule.findMany({
         where: { schoolId },
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -32,16 +32,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = AttendanceRuleCreateSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       if (validated.isDefault) {
         // Reset any existing default rule for the school
-        await prisma.attendanceRule.updateMany({
+        await tx.attendanceRule.updateMany({
           where: { schoolId, isDefault: true },
           data: { isDefault: false },
         });
       }
 
-      const rule = await prisma.attendanceRule.create({
+      const rule = await tx.attendanceRule.create({
         data: {
           schoolId,
           campusId: validated.campusId,

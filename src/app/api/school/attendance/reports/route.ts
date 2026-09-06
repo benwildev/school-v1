@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const sectionId = searchParams.get('sectionId');
     const departmentId = searchParams.get('departmentId');
 
-    return await withTenantContext(schoolId, async () => {
+    return await withTenantContext(schoolId, async (tx) => {
       if (type === 'STUDENT') {
         const where: any = { schoolId };
         if (startDate && endDate) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         if (classId) where.classId = classId;
         if (sectionId) where.sectionId = sectionId;
 
-        const attendances = await prisma.studentAttendance.findMany({
+        const attendances = await tx.studentAttendance.findMany({
           where,
           include: {
             student: {
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
           where.date = new Date(startDate);
         }
 
-        const attendances = await prisma.employeeAttendance.findMany({
+        const attendances = await tx.employeeAttendance.findMany({
           where,
           include: {
             employee: {

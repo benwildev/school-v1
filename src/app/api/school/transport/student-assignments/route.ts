@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const enrollmentId = searchParams.get('enrollmentId');
     const studentId = searchParams.get('studentId');
 
-    const assignments = await withTenantContext(schoolId, async () => {
+    const assignments = await withTenantContext(schoolId, async (tx) => {
       const where: any = { schoolId };
       if (routeId) where.routeId = routeId;
       if (vehicleId) where.vehicleId = vehicleId;
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       if (enrollmentId) where.enrollmentId = enrollmentId;
       if (studentId) where.studentId = studentId;
 
-      return prisma.studentTransportAssignment.findMany({
+      return tx.studentTransportAssignment.findMany({
         where,
         include: {
           student: {
@@ -121,9 +121,9 @@ export async function POST(request: NextRequest) {
       notes,
     } = parsed.data;
 
-    const assignment = await withTenantContext(schoolId, async () => {
+    const assignment = await withTenantContext(schoolId, async (tx) => {
       // 1. Verify Enrollment belongs to school & extract studentId
-      const enrollment = await prisma.enrollment.findFirst({
+      const enrollment = await tx.enrollment.findFirst({
         where: { id: enrollmentId, schoolId },
         select: { id: true, studentId: true, status: true },
       });
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. Check for active existing assignment for this enrollment
-      const existingActive = await prisma.studentTransportAssignment.findFirst({
+      const existingActive = await tx.studentTransportAssignment.findFirst({
         where: {
           schoolId,
           enrollmentId,
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 3. Verify Route belongs to school
-      const route = await prisma.transportRoute.findFirst({
+      const route = await tx.transportRoute.findFirst({
         where: { id: routeId, schoolId },
       });
       if (!route) {
@@ -153,10 +153,10 @@ export async function POST(request: NextRequest) {
 
       // 4. Verify Stops belong to Route and School
       const [pickupStop, dropoffStop] = await Promise.all([
-        prisma.routeStop.findFirst({
+        tx.routeStop.findFirst({
           where: { id: pickupStopId, routeId, schoolId },
         }),
-        prisma.routeStop.findFirst({
+        tx.routeStop.findFirst({
           where: { id: dropoffStopId, routeId, schoolId },
         }),
       ]);
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
       // 5. If vehicle specified, verify capacity under transaction / lock
       if (vehicleId) {
-        const capacityCheck = await checkVehicleCapacity(vehicleId, schoolId);
+        const capacityCheck = await checkVehicleCapacity(vehicleId, schoolId, tx);
         if (!capacityCheck.hasCapacity) {
           throw new Error(capacityCheck.error || 'Vehicle has reached full capacity.');
         }
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
 
       // 6. If feeStructureId specified, verify it belongs to school
       if (feeStructureId) {
-        const feeStruct = await prisma.feeStructure.findFirst({
+        const feeStruct = await tx.feeStructure.findFirst({
           where: { id: feeStructureId, schoolId },
         });
         if (!feeStruct) {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 7. Create assignment record
-      return prisma.studentTransportAssignment.create({
+      return tx.studentTransportAssignment.create({
         data: {
           schoolId,
           studentId: enrollment.studentId,

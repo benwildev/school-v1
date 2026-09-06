@@ -46,3 +46,10 @@ next-env.d.ts
 .agents/
 .gemini/
 
+# test artifacts & playwright reports
+/test-results/
+/playwright-report/
+/playwright-screenshots/
+playwright-results.json
+
+

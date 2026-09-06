@@ -288,7 +288,13 @@ export async function executeEmployeeAttendanceSummaryReport(
 ): Promise<ReportExecutionResult> {
   const { schoolId, filters } = ctx;
 
-  const whereClause: any = { schoolId };
+  const whereClause: any = {
+    schoolId,
+    employee: {
+      schoolId,
+      deletedAt: null,
+    },
+  };
   if (filters.startDate && filters.endDate) {
     whereClause.date = { gte: new Date(filters.startDate), lte: new Date(filters.endDate) };
   }

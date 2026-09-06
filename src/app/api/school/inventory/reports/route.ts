@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'INVENTORY_REPORT_VIEW' });
 
-    const stats = await withTenantContext(schoolId, async () => {
+    const stats = await withTenantContext(schoolId, async (tx) => {
       const [
         totalItems,
         consumableItems,
@@ -22,30 +22,30 @@ export async function GET(request: NextRequest) {
         purchases,
         totalTransfers,
       ] = await Promise.all([
-        prisma.inventoryItem.count({ where: { schoolId } }),
-        prisma.inventoryItem.count({ where: { schoolId, itemType: 'CONSUMABLE' } }),
-        prisma.inventoryItem.count({ where: { schoolId, itemType: 'ASSET' } }),
-        prisma.inventoryItem.findMany({
+        tx.inventoryItem.count({ where: { schoolId } }),
+        tx.inventoryItem.count({ where: { schoolId, itemType: 'CONSUMABLE' } }),
+        tx.inventoryItem.count({ where: { schoolId, itemType: 'ASSET' } }),
+        tx.inventoryItem.findMany({
           where: { schoolId, itemType: 'CONSUMABLE' },
           include: {
             stockMovements: { select: { movementType: true, quantity: true } },
           },
         }),
-        prisma.asset.count({ where: { schoolId } }),
-        prisma.asset.count({ where: { schoolId, status: 'AVAILABLE' } }),
-        prisma.asset.count({ where: { schoolId, status: 'ASSIGNED' } }),
-        prisma.asset.count({ where: { schoolId, status: 'MAINTENANCE' } }),
-        prisma.asset.count({ where: { schoolId, status: 'DISPOSED' } }),
-        prisma.asset.aggregate({
+        tx.asset.count({ where: { schoolId } }),
+        tx.asset.count({ where: { schoolId, status: 'AVAILABLE' } }),
+        tx.asset.count({ where: { schoolId, status: 'ASSIGNED' } }),
+        tx.asset.count({ where: { schoolId, status: 'MAINTENANCE' } }),
+        tx.asset.count({ where: { schoolId, status: 'DISPOSED' } }),
+        tx.asset.aggregate({
           where: { schoolId },
           _sum: { purchaseCost: true },
         }),
-        prisma.inventoryPurchase.aggregate({
+        tx.inventoryPurchase.aggregate({
           where: { schoolId },
           _count: { _all: true },
           _sum: { totalAmount: true },
         }),
-        prisma.inventoryTransfer.count({ where: { schoolId } }),
+        tx.inventoryTransfer.count({ where: { schoolId } }),
       ]);
 
       // Count low stock consumables

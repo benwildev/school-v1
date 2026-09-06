@@ -22,8 +22,8 @@ export async function POST(
 
     const { employeeId, campusId, classroomId, locationName, condition, notes } = parsed.data;
 
-    const result = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
+    const result = await withTenantContext(schoolId, async (tx) => {
+      return tx.$transaction(async (tx) => {
         const asset = await tx.asset.findFirst({
           where: { id: assetId, schoolId },
         });

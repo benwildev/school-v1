@@ -12,8 +12,8 @@ export async function GET(
     const { schoolId } = await requirePermission(request, { permission: 'VEHICLES_VIEW' });
     const { vehicleId } = await params;
 
-    const vehicle = await withTenantContext(schoolId, async () => {
-      return prisma.vehicle.findFirst({
+    const vehicle = await withTenantContext(schoolId, async (tx) => {
+      return tx.vehicle.findFirst({
         where: { id: vehicleId, schoolId },
         include: {
           campus: { select: { id: true, nameEn: true, nameBn: true } },
@@ -90,8 +90,8 @@ export async function PATCH(
       );
     }
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.vehicle.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.vehicle.findFirst({
         where: { id: vehicleId, schoolId },
       });
       if (!existing) {
@@ -116,7 +116,7 @@ export async function PATCH(
         updateData.registrationExpiry = parsed.data.registrationExpiry ? new Date(parsed.data.registrationExpiry) : null;
       }
 
-      return prisma.vehicle.update({
+      return tx.vehicle.update({
         where: { id: vehicleId },
         data: updateData,
       });
@@ -141,8 +141,8 @@ export async function DELETE(
     const { schoolId } = await requirePermission(request, { permission: 'VEHICLES_RETIRE' });
     const { vehicleId } = await params;
 
-    const result = await withTenantContext(schoolId, async () => {
-      const vehicle = await prisma.vehicle.findFirst({
+    const result = await withTenantContext(schoolId, async (tx) => {
+      const vehicle = await tx.vehicle.findFirst({
         where: { id: vehicleId, schoolId },
         include: {
           _count: {
@@ -157,7 +157,7 @@ export async function DELETE(
 
       // If vehicle has trip history or assignments, preserve historical integrity by retiring
       if (vehicle._count.trips > 0 || vehicle._count.studentAssignments > 0) {
-        await prisma.vehicle.update({
+        await tx.vehicle.update({
           where: { id: vehicleId },
           data: { status: 'RETIRED' },
         });
@@ -169,7 +169,7 @@ export async function DELETE(
       }
 
       // If purely unreferenced test record, safe to remove
-      await prisma.vehicle.delete({
+      await tx.vehicle.delete({
         where: { id: vehicleId },
       });
 

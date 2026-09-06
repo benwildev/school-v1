@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
     const routeId = searchParams.get('routeId');
     const vehicleId = searchParams.get('vehicleId');
 
-    const reportData = await withTenantContext(schoolId, async () => {
+    const reportData = await withTenantContext(schoolId, async (tx) => {
       if (reportType === 'expiry-alerts') {
-        const vehicles = await prisma.vehicle.findMany({
+        const vehicles = await tx.vehicle.findMany({
           where: { schoolId, status: { not: 'RETIRED' } },
           select: {
             id: true,
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (reportType === 'capacity-utilization') {
-        const vehicles = await prisma.vehicle.findMany({
+        const vehicles = await tx.vehicle.findMany({
           where: { schoolId, status: { in: ['ACTIVE', 'IN_SERVICE'] } },
           include: {
             _count: {
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         if (routeId) where.routeId = routeId;
         if (vehicleId) where.vehicleId = vehicleId;
 
-        const manifest = await prisma.studentTransportAssignment.findMany({
+        const manifest = await tx.studentTransportAssignment.findMany({
           where,
           include: {
             student: {
@@ -121,11 +121,11 @@ export async function GET(request: NextRequest) {
         totalTripsToday,
         activeDrivers,
       ] = await Promise.all([
-        prisma.vehicle.count({ where: { schoolId } }),
-        prisma.vehicle.count({ where: { schoolId, status: 'ACTIVE' } }),
-        prisma.transportRoute.count({ where: { schoolId, status: 'ACTIVE' } }),
-        prisma.studentTransportAssignment.count({ where: { schoolId, status: 'ACTIVE' } }),
-        prisma.transportTrip.count({
+        tx.vehicle.count({ where: { schoolId } }),
+        tx.vehicle.count({ where: { schoolId, status: 'ACTIVE' } }),
+        tx.transportRoute.count({ where: { schoolId, status: 'ACTIVE' } }),
+        tx.studentTransportAssignment.count({ where: { schoolId, status: 'ACTIVE' } }),
+        tx.transportTrip.count({
           where: {
             schoolId,
             tripDate: {
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
             },
           },
         }),
-        prisma.vehicleDriverAssignment.count({ where: { schoolId, isActive: true } }),
+        tx.vehicleDriverAssignment.count({ where: { schoolId, isActive: true } }),
       ]);
 
       return {

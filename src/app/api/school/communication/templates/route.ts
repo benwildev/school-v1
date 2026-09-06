@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'COMMUNICATION_TEMPLATE_VIEW' });
 
-    return await withTenantContext(schoolId, async () => {
-      const templates = await prisma.notificationTemplate.findMany({
+    return await withTenantContext(schoolId, async (tx) => {
+      const templates = await tx.notificationTemplate.findMany({
         where: { schoolId },
         orderBy: { name: 'asc' },
       });
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = NotificationTemplateCreateSchema.parse(body);
 
-    return await withTenantContext(schoolId, async () => {
-      const existing = await prisma.notificationTemplate.findUnique({
+    return await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.notificationTemplate.findUnique({
         where: {
           schoolId_code: {
             schoolId,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       const varsBn = extractTemplateVariables(validated.templateBn);
       const combinedVars = Array.from(new Set([...validated.variables, ...varsEn, ...varsBn]));
 
-      const template = await prisma.notificationTemplate.create({
+      const template = await tx.notificationTemplate.create({
         data: {
           schoolId,
           name: validated.name,
@@ -91,8 +91,8 @@ export async function PUT(request: NextRequest) {
 
     const validated = NotificationTemplateUpdateSchema.parse(updateFields);
 
-    return await withTenantContext(schoolId, async () => {
-      const existing = await prisma.notificationTemplate.findFirst({
+    return await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.notificationTemplate.findFirst({
         where: { id, schoolId },
       });
 
@@ -100,7 +100,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Template not found' }, { status: 404 });
       }
 
-      const updated = await prisma.notificationTemplate.update({
+      const updated = await tx.notificationTemplate.update({
         where: { id },
         data: validated,
       });

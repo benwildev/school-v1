@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
     const sourceCampusId = searchParams.get('sourceCampusId') || undefined;
     const destinationCampusId = searchParams.get('destinationCampusId') || undefined;
 
-    const transfers = await withTenantContext(schoolId, async () => {
+    const transfers = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (itemId) whereClause.itemId = itemId;
       if (sourceCampusId) whereClause.sourceCampusId = sourceCampusId;
       if (destinationCampusId) whereClause.destinationCampusId = destinationCampusId;
 
-      return prisma.inventoryTransfer.findMany({
+      return tx.inventoryTransfer.findMany({
         where: whereClause,
         include: {
           item: {
@@ -63,90 +63,95 @@ export async function POST(request: NextRequest) {
       reason,
     } = parsed.data;
 
-    const transfer = await withTenantContext(schoolId, async () => {
-      return prisma.$transaction(async (tx) => {
-        // 1. Verify item
-        const item = await tx.inventoryItem.findFirst({
-          where: { id: itemId, schoolId },
-        });
-        if (!item) throw new Error('Inventory item not found');
+    const transfer = await withTenantContext(schoolId, async (tx) => {
+      // 1. Lock item row to serialize concurrent transfers and movements on the same item
+      await tx.$queryRaw`
+        SELECT id FROM inventory_items 
+        WHERE id = ${itemId}::uuid AND school_id = ${schoolId}::uuid 
+        FOR UPDATE
+      `;
 
-        // 2. Check unique transferNumber
-        const existing = await tx.inventoryTransfer.findFirst({
-          where: { schoolId, transferNumber },
-        });
-        if (existing) {
-          throw new Error(`Transfer number "${transferNumber}" already exists.`);
-        }
-
-        // 3. Verify stock availability at source campus
-        const sourceMovements = await tx.stockMovement.findMany({
-          where: { schoolId, itemId, campusId: sourceCampusId },
-          select: { movementType: true, quantity: true },
-        });
-        const currentSourceStock = calculateCurrentStock(sourceMovements);
-        const check = validateStockAvailability(currentSourceStock, quantity);
-        if (!check.available) {
-          throw new Error(`Transfer failed: ${check.error}`);
-        }
-
-        const date = transferDate ? new Date(transferDate) : new Date();
-
-        // 4. Create Transfer record
-        const createdTransfer = await tx.inventoryTransfer.create({
-          data: {
-            schoolId,
-            transferNumber,
-            itemId,
-            sourceCampusId,
-            destinationCampusId,
-            quantity,
-            transferDate: date,
-            reason: reason || null,
-            initiatedById: context.userId,
-          },
-          include: {
-            item: true,
-            sourceCampus: true,
-            destinationCampus: true,
-          },
-        });
-
-        // 5. Create paired stock movements
-        // TRANSFER_OUT from source
-        await tx.stockMovement.create({
-          data: {
-            schoolId,
-            itemId,
-            campusId: sourceCampusId,
-            movementType: 'TRANSFER_OUT',
-            quantity,
-            destinationCampusId,
-            referenceType: 'TRANSFER',
-            referenceId: createdTransfer.id,
-            notes: `Transfer #${transferNumber} to destination campus`,
-            createdById: context.userId,
-          },
-        });
-
-        // TRANSFER_IN to destination
-        await tx.stockMovement.create({
-          data: {
-            schoolId,
-            itemId,
-            campusId: destinationCampusId,
-            movementType: 'TRANSFER_IN',
-            quantity,
-            sourceCampusId,
-            referenceType: 'TRANSFER',
-            referenceId: createdTransfer.id,
-            notes: `Transfer #${transferNumber} from source campus`,
-            createdById: context.userId,
-          },
-        });
-
-        return createdTransfer;
+      // 1. Verify item
+      const item = await tx.inventoryItem.findFirst({
+        where: { id: itemId, schoolId },
       });
+      if (!item) throw new Error('Inventory item not found');
+
+      // 2. Check unique transferNumber
+      const existing = await tx.inventoryTransfer.findFirst({
+        where: { schoolId, transferNumber },
+      });
+      if (existing) {
+        throw new Error(`Transfer number "${transferNumber}" already exists.`);
+      }
+
+      // 3. Verify stock availability at source campus under lock
+      const sourceMovements = await tx.stockMovement.findMany({
+        where: { schoolId, itemId, campusId: sourceCampusId },
+        select: { movementType: true, quantity: true },
+      });
+      const currentSourceStock = calculateCurrentStock(sourceMovements);
+      const check = validateStockAvailability(currentSourceStock, quantity);
+      if (!check.available) {
+        throw new Error(`Transfer failed: ${check.error}`);
+      }
+
+      const date = transferDate ? new Date(transferDate) : new Date();
+
+      // 4. Create Transfer record
+      const createdTransfer = await tx.inventoryTransfer.create({
+        data: {
+          schoolId,
+          transferNumber,
+          itemId,
+          sourceCampusId,
+          destinationCampusId,
+          quantity,
+          transferDate: date,
+          reason: reason || null,
+          initiatedById: context.userId,
+        },
+        include: {
+          item: true,
+          sourceCampus: true,
+          destinationCampus: true,
+        },
+      });
+
+      // 5. Create paired stock movements
+      // TRANSFER_OUT from source
+      await tx.stockMovement.create({
+        data: {
+          schoolId,
+          itemId,
+          campusId: sourceCampusId,
+          movementType: 'TRANSFER_OUT',
+          quantity,
+          destinationCampusId,
+          referenceType: 'TRANSFER',
+          referenceId: createdTransfer.id,
+          notes: `Transfer #${transferNumber} to destination campus`,
+          createdById: context.userId,
+        },
+      });
+
+      // TRANSFER_IN to destination
+      await tx.stockMovement.create({
+        data: {
+          schoolId,
+          itemId,
+          campusId: destinationCampusId,
+          movementType: 'TRANSFER_IN',
+          quantity,
+          sourceCampusId,
+          referenceType: 'TRANSFER',
+          referenceId: createdTransfer.id,
+          notes: `Transfer #${transferNumber} from source campus`,
+          createdById: context.userId,
+        },
+      });
+
+      return createdTransfer;
     });
 
     return NextResponse.json({ success: true, data: transfer }, { status: 201 });

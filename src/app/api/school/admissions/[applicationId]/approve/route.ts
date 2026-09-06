@@ -3,7 +3,20 @@ import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { AdmissionApprovalConversionSchema } from '@/lib/validation/admission';
-import { AdmissionStatus, EnrollmentType, EnrollmentStatus, StudentStatus, Division, AuditAction } from '@prisma/client';
+import { 
+  AdmissionStatus, 
+  EnrollmentType, 
+  EnrollmentStatus, 
+  StudentStatus, 
+  Division, 
+  AuditAction,
+  BillingPeriodType,
+  InvoiceStatus,
+  PaymentMethod,
+  PaymentStatus,
+} from '@prisma/client';
+import { generateInvoiceNumber, generatePaymentNumber } from '@/lib/finance/invoice';
+import { processPaymentAllocation } from '@/lib/finance/allocation';
 
 /**
  * POST /api/school/admissions/[applicationId]/approve
@@ -49,7 +62,19 @@ export async function POST(
       );
     }
 
-    const { sectionId, rollNo, campusId, groupId, fatherGuardianId, motherGuardianId, admissionDate, notes } = validation.data;
+    const { 
+      sectionId, 
+      rollNo, 
+      campusId, 
+      groupId, 
+      fatherGuardianId, 
+      motherGuardianId, 
+      admissionDate, 
+      notes,
+      admissionFeeAmount,
+      paymentMethod,
+      transactionId,
+    } = validation.data;
 
     const conversionResult = await withTenantContext(schoolId, async (tx) => {
       // 1. Row-level exclusive lock on the application record
@@ -346,14 +371,122 @@ export async function POST(
         },
       });
 
+      // 15. Synchronize admission/application fee to canonical finance if fee was marked paid or specified
+      let financeSync = null;
+      const shouldSyncFee = app.applicationFeePaid || (admissionFeeAmount != null && Number(admissionFeeAmount) > 0);
+
+      if (shouldSyncFee) {
+        let feeType = await tx.feeType.findFirst({
+          where: {
+            schoolId,
+            code: { in: ['ADMISSION', 'ADMISSION_FEE', 'APPLICATION', 'APPLICATION_FEE'] },
+          },
+        });
+
+        if (!feeType) {
+          feeType = await tx.feeType.create({
+            data: {
+              schoolId,
+              code: 'ADMISSION',
+              nameEn: 'Admission Fee',
+              nameBn: 'ভর্তি ফি',
+              isRecurring: false,
+              isRefundable: false,
+              status: 'ACTIVE',
+            },
+          });
+        }
+
+        const admissionFeeStructure = await tx.feeStructure.findFirst({
+          where: {
+            schoolId,
+            academicSessionId: app.academicSessionId,
+            classId: app.appliedClassId,
+            feeTypeId: feeType.id,
+          },
+        });
+
+        const effectiveFeeAmount = admissionFeeAmount != null && Number(admissionFeeAmount) > 0
+          ? Number(admissionFeeAmount)
+          : (admissionFeeStructure ? Number(admissionFeeStructure.amount) : 500);
+
+        const invoiceNumber = generateInvoiceNumber();
+        const studentFee = await tx.studentFee.create({
+          data: {
+            schoolId,
+            invoiceNumber,
+            studentId: student.id,
+            enrollmentId: enrollment.id,
+            feeStructureId: admissionFeeStructure?.id || null,
+            feeTypeId: feeType.id,
+            billingPeriodType: BillingPeriodType.ONE_TIME,
+            billingPeriodKey: `ADM-${app.applicationNumber}`,
+            periodStartDate: app.academicSession.startDate,
+            periodEndDate: app.academicSession.endDate,
+            dueDate: new Date(),
+            baseAmount: effectiveFeeAmount,
+            discountAmount: 0,
+            fineAmount: 0,
+            netAmount: effectiveFeeAmount,
+            paidAmount: 0,
+            dueAmount: effectiveFeeAmount,
+            status: InvoiceStatus.UNPAID,
+          },
+        });
+
+        const paymentNumber = generatePaymentNumber();
+        const resolvedMethod = paymentMethod || (app.applicationFeeTrxId ? PaymentMethod.BKASH : PaymentMethod.CASH);
+        const resolvedTrxId = transactionId || app.applicationFeeTrxId || null;
+
+        const payment = await tx.payment.create({
+          data: {
+            schoolId,
+            paymentNumber,
+            studentId: student.id,
+            enrollmentId: enrollment.id,
+            totalAmount: effectiveFeeAmount,
+            allocatedAmount: 0,
+            advanceCreditAmount: 0,
+            paymentMethod: resolvedMethod,
+            transactionId: resolvedTrxId,
+            paymentDate: new Date(),
+            status: PaymentStatus.SUCCESS,
+            notes: `Admission application #${app.applicationNumber} fee collected/verified`,
+            receivedById: context.userId,
+          },
+        });
+
+        const allocResult = await processPaymentAllocation({
+          tx,
+          schoolId,
+          studentId: student.id,
+          paymentId: payment.id,
+          paymentNumber,
+          totalAmount: effectiveFeeAmount,
+          receivedById: context.userId,
+          allocations: [{ studentFeeId: studentFee.id, amount: effectiveFeeAmount }],
+          autoAllocateOldest: false,
+        });
+
+        financeSync = {
+          invoiceId: studentFee.id,
+          invoiceNumber,
+          paymentId: payment.id,
+          paymentNumber,
+          receiptNumber: allocResult.receiptNumber,
+          amount: effectiveFeeAmount,
+        };
+      }
+
       return {
         student,
         enrollment,
         application: updatedApplication,
+        finance: financeSync,
       };
     });
 
-    // 15. Forensic audit logging
+    // 16. Forensic audit logging
     await logAuditEvent({
       schoolId,
       actorUserId: context.userId,
@@ -362,13 +495,14 @@ export async function POST(
       action: AuditAction.APPROVE,
       entity: 'ADMISSION_APPLICATION',
       entityId: applicationId,
-      changeSummary: `Converted admission application ${conversionResult.application.applicationNumber} to Student ${conversionResult.student.studentCode} with Enrollment in section ${sectionId} roll ${rollNo}`,
+      changeSummary: `Converted admission application ${conversionResult.application.applicationNumber} to Student ${conversionResult.student.studentCode} with Enrollment in section ${sectionId} roll ${rollNo}${conversionResult.finance ? ` and synchronized finance invoice ${conversionResult.finance.invoiceNumber}` : ''}`,
       beforeState: { status: AdmissionStatus.APPROVED },
       afterState: {
         status: AdmissionStatus.ENROLLED,
         convertedStudentId: conversionResult.student.id,
         enrollmentId: conversionResult.enrollment.id,
         studentCode: conversionResult.student.studentCode,
+        finance: conversionResult.finance,
       },
     });
 
@@ -385,6 +519,7 @@ export async function POST(
           classId: conversionResult.enrollment.classId,
           sectionId: conversionResult.enrollment.sectionId,
           rollNo: conversionResult.enrollment.rollNo,
+          finance: conversionResult.finance,
         },
       },
       { status: 201 }

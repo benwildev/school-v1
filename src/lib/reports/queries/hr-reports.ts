@@ -83,15 +83,28 @@ export async function executeDepartmentSummaryReport(
 ): Promise<ReportExecutionResult> {
   const { schoolId } = ctx;
 
-  const departments = await prisma.department.findMany({
-    where: { schoolId },
-    include: {
-      _count: {
-        select: { employees: true },
+  const [departments, activeCounts] = await Promise.all([
+    prisma.department.findMany({
+      where: { schoolId },
+      orderBy: { nameEn: 'asc' },
+    }),
+    prisma.employee.groupBy({
+      by: ['departmentId'],
+      where: {
+        schoolId,
+        deletedAt: null,
+        status: 'ACTIVE',
       },
-    },
-    orderBy: { nameEn: 'asc' },
-  });
+      _count: { id: true },
+    }),
+  ]);
+
+  const countMap = new Map<string, number>();
+  for (const c of activeCounts) {
+    if (c.departmentId) {
+      countMap.set(c.departmentId, c._count.id);
+    }
+  }
 
   const columns: ReportColumn[] = [
     { key: 'nameEn', labelEn: 'Department (EN)', labelBn: 'বিভাগ (ইংরেজি)', type: 'string' },
@@ -104,7 +117,7 @@ export async function executeDepartmentSummaryReport(
     nameEn: d.nameEn,
     nameBn: d.nameBn || '-',
     code: d.code,
-    activeCount: d._count?.employees ?? 0,
+    activeCount: countMap.get(d.id) ?? 0,
   }));
 
   return {
@@ -181,7 +194,13 @@ export async function executeSalaryAdvanceReport(
 ): Promise<ReportExecutionResult> {
   const { schoolId, filters } = ctx;
 
-  const whereClause: any = { schoolId };
+  const whereClause: any = {
+    schoolId,
+    employee: {
+      schoolId,
+      deletedAt: null,
+    },
+  };
   if (filters.status) whereClause.status = filters.status;
 
   const advances = await prisma.salaryAdvance.findMany({

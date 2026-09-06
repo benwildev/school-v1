@@ -24,14 +24,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const fineType = searchParams.get('fineType') || undefined;
 
-    const fines = await withTenantContext(schoolId, async () => {
+    const fines = await withTenantContext(schoolId, async (tx) => {
       const whereClause: any = { schoolId };
       if (studentId) whereClause.studentId = studentId;
       if (employeeId) whereClause.employeeId = employeeId;
       if (status) whereClause.status = status;
       if (fineType) whereClause.fineType = fineType;
 
-      return prisma.libraryFine.findMany({
+      return tx.libraryFine.findMany({
         where: whereClause,
         include: {
           loan: {
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const fine = await withTenantContext(schoolId, async () => {
-      return prisma.libraryFine.create({
+    const fine = await withTenantContext(schoolId, async (tx) => {
+      return tx.libraryFine.create({
         data: {
           schoolId,
           loanId: loanId || null,
@@ -125,8 +125,8 @@ export async function PATCH(request: NextRequest) {
 
     const { waivedReason } = parsed.data;
 
-    const updated = await withTenantContext(schoolId, async () => {
-      const fine = await prisma.libraryFine.findFirst({
+    const updated = await withTenantContext(schoolId, async (tx) => {
+      const fine = await tx.libraryFine.findFirst({
         where: { id: fineId, schoolId },
       });
       if (!fine) throw new Error('Fine not found');
@@ -143,7 +143,7 @@ export async function PATCH(request: NextRequest) {
 
       const { isSettled, isFullyWaived } = calculateFineBalance(currentFine, newTotalWaived, currentPaid);
 
-      return prisma.libraryFine.update({
+      return tx.libraryFine.update({
         where: { id: fineId },
         data: {
           waivedAmount: newTotalWaived,

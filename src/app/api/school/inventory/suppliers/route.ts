@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'SUPPLIER_VIEW' });
 
-    const suppliers = await withTenantContext(schoolId, async () => {
-      return prisma.inventorySupplier.findMany({
+    const suppliers = await withTenantContext(schoolId, async (tx) => {
+      return tx.inventorySupplier.findMany({
         where: { schoolId },
         include: {
           _count: { select: { purchases: true } },
@@ -39,15 +39,15 @@ export async function POST(request: NextRequest) {
 
     const { supplierCode, name, companyName, contactPerson, phone, email, address } = parsed.data;
 
-    const supplier = await withTenantContext(schoolId, async () => {
-      const existing = await prisma.inventorySupplier.findFirst({
+    const supplier = await withTenantContext(schoolId, async (tx) => {
+      const existing = await tx.inventorySupplier.findFirst({
         where: { schoolId, supplierCode },
       });
       if (existing) {
         throw new Error(`Supplier code "${supplierCode}" already exists.`);
       }
 
-      return prisma.inventorySupplier.create({
+      return tx.inventorySupplier.create({
         data: {
           schoolId,
           supplierCode,

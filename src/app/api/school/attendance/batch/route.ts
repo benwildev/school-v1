@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { DailyAttendanceBatchSchema } from '@/lib/validation/attendance';
 import { verifyTeacherAttendanceScope } from '@/lib/academic/teacher-scope';
+import { enqueueAttendanceAbsenceNotifications } from '@/lib/communication/event-triggers';
 import { AuditAction } from '@prisma/client';
 
 /**
@@ -131,7 +132,23 @@ export async function POST(request: NextRequest) {
       return created;
     });
 
-    // 5. Forensic Audit Log
+    // 5. Enqueue absence notifications asynchronously under school tenant scoping
+    const absentItems = createdRecords
+      .filter((r) => r.status === 'ABSENT')
+      .map((r) => ({
+        id: r.id,
+        studentId: r.studentId,
+        status: r.status,
+        date: r.date,
+      }));
+
+    if (absentItems.length > 0) {
+      enqueueAttendanceAbsenceNotifications(schoolId, absentItems).catch((err) => {
+        console.error('Failed to enqueue absence notifications:', err);
+      });
+    }
+
+    // 6. Forensic Audit Log
     await logAuditEvent({
       schoolId,
       actorUserId: context.userId,
