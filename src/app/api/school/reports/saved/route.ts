@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
 import { prisma } from '@/lib/db';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { z } from 'zod';
 
 const SaveReportSchema = z.object({
@@ -36,14 +37,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: savedReports,
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
-    if (error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -84,13 +79,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: savedReport,
     }, { status: 201 });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
-    if (error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

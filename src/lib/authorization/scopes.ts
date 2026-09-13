@@ -1,5 +1,5 @@
 import { PermissionScope } from '@prisma/client';
-import { prisma } from '../db';
+import { withTenantContext, withIdentityContext } from '../db';
 
 export interface ResourceContext {
   targetUserId?: string;
@@ -50,22 +50,24 @@ export async function evaluateScope(params: {
       return true;
     }
 
-    const teacher = await prisma.teacher.findFirst({
-      where: { userId, schoolId, status: 'ACTIVE', deletedAt: null },
-    });
-    if (!teacher) return false;
+    return withTenantContext(schoolId, async (tx) => {
+      const teacher = await tx.teacher.findFirst({
+        where: { userId, schoolId, status: 'ACTIVE', deletedAt: null },
+      });
+      if (!teacher) return false;
 
-    const assignment = await prisma.teacherAssignment.findFirst({
-      where: {
-        teacherId: teacher.id,
-        schoolId,
-        status: 'ACTIVE',
-        ...(resourceContext.targetClassId ? { classId: resourceContext.targetClassId } : {}),
-        ...(resourceContext.targetSectionId ? { sectionId: resourceContext.targetSectionId } : {}),
-      },
-    });
+      const assignment = await tx.teacherAssignment.findFirst({
+        where: {
+          teacherId: teacher.id,
+          schoolId,
+          status: 'ACTIVE',
+          ...(resourceContext.targetClassId ? { classId: resourceContext.targetClassId } : {}),
+          ...(resourceContext.targetSectionId ? { sectionId: resourceContext.targetSectionId } : {}),
+        },
+      });
 
-    return Boolean(assignment);
+      return Boolean(assignment);
+    });
   }
 
   // 4. ASSIGNED_SUBJECTS (Teacher Subject-Level Scope)
@@ -74,74 +76,80 @@ export async function evaluateScope(params: {
       return true;
     }
 
-    const teacher = await prisma.teacher.findFirst({
-      where: { userId, schoolId, status: 'ACTIVE', deletedAt: null },
-    });
-    if (!teacher) return false;
+    return withTenantContext(schoolId, async (tx) => {
+      const teacher = await tx.teacher.findFirst({
+        where: { userId, schoolId, status: 'ACTIVE', deletedAt: null },
+      });
+      if (!teacher) return false;
 
-    const assignment = await prisma.teacherAssignment.findFirst({
-      where: {
-        teacherId: teacher.id,
-        schoolId,
-        subjectId: resourceContext.targetSubjectId,
-        status: 'ACTIVE',
-        ...(resourceContext.targetSectionId ? { sectionId: resourceContext.targetSectionId } : {}),
-        ...(resourceContext.targetClassId ? { classId: resourceContext.targetClassId } : {}),
-      },
-    });
+      const assignment = await tx.teacherAssignment.findFirst({
+        where: {
+          teacherId: teacher.id,
+          schoolId,
+          subjectId: resourceContext.targetSubjectId,
+          status: 'ACTIVE',
+          ...(resourceContext.targetSectionId ? { sectionId: resourceContext.targetSectionId } : {}),
+          ...(resourceContext.targetClassId ? { classId: resourceContext.targetClassId } : {}),
+        },
+      });
 
-    return Boolean(assignment);
+      return Boolean(assignment);
+    });
   }
 
   // 5. OWN_STUDENTS (Teacher Student-Level Scope)
   if (scope === 'OWN_STUDENTS') {
     if (!resourceContext.targetStudentId) return true;
 
-    const teacher = await prisma.teacher.findFirst({
-      where: { userId, schoolId, status: 'ACTIVE', deletedAt: null },
-    });
-    if (!teacher) return false;
+    return withTenantContext(schoolId, async (tx) => {
+      const teacher = await tx.teacher.findFirst({
+        where: { userId, schoolId, status: 'ACTIVE', deletedAt: null },
+      });
+      if (!teacher) return false;
 
-    // Find if student is currently enrolled in any section taught by teacher
-    const studentEnrollment = await prisma.enrollment.findFirst({
-      where: {
-        studentId: resourceContext.targetStudentId,
-        schoolId,
-        status: 'ACTIVE',
-      },
-    });
-    if (!studentEnrollment) return false;
+      // Find if student is currently enrolled in any section taught by teacher
+      const studentEnrollment = await tx.enrollment.findFirst({
+        where: {
+          studentId: resourceContext.targetStudentId,
+          schoolId,
+          status: 'ACTIVE',
+        },
+      });
+      if (!studentEnrollment) return false;
 
-    const assignment = await prisma.teacherAssignment.findFirst({
-      where: {
-        teacherId: teacher.id,
-        schoolId,
-        sectionId: studentEnrollment.sectionId,
-        status: 'ACTIVE',
-      },
-    });
+      const assignment = await tx.teacherAssignment.findFirst({
+        where: {
+          teacherId: teacher.id,
+          schoolId,
+          sectionId: studentEnrollment.sectionId,
+          status: 'ACTIVE',
+        },
+      });
 
-    return Boolean(assignment);
+      return Boolean(assignment);
+    });
   }
 
   // 6. OWN_CHILDREN (Parent Scope)
   if (scope === 'OWN_CHILDREN') {
     if (!resourceContext.targetStudentId) return true;
 
-    const guardian = await prisma.guardian.findFirst({
-      where: { userId, schoolId },
-    });
-    if (!guardian) return false;
+    return withTenantContext(schoolId, async (tx) => {
+      const guardian = await tx.guardian.findFirst({
+        where: { userId, schoolId },
+      });
+      if (!guardian) return false;
 
-    const linkage = await prisma.studentGuardian.findFirst({
-      where: {
-        guardianId: guardian.id,
-        studentId: resourceContext.targetStudentId,
-        schoolId,
-      },
-    });
+      const linkage = await tx.studentGuardian.findFirst({
+        where: {
+          guardianId: guardian.id,
+          studentId: resourceContext.targetStudentId,
+          schoolId,
+        },
+      });
 
-    return Boolean(linkage);
+      return Boolean(linkage);
+    });
   }
 
   // 7. OWN_DATA (Student / Self Scope)
@@ -153,22 +161,23 @@ export async function evaluateScope(params: {
 
     // Check if user is linked to target student
     if (resourceContext.targetStudentId) {
-      // Find if student profile exists for this user email/phone
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
+      // Cross-school identity lookup: user.email/phone isn't scoped to one school.
+      const user = await withIdentityContext((tx) => tx.user.findUnique({ where: { id: userId } }));
       if (!user) return false;
 
-      const student = await prisma.student.findFirst({
-        where: {
-          id: resourceContext.targetStudentId,
-          schoolId,
-          OR: [
-            ...(user.email ? [{ email: user.email }] : []),
-            { phone: user.phone },
-          ],
-        },
-      });
+      const targetStudentId = resourceContext.targetStudentId;
+      const student = await withTenantContext(schoolId, (tx) =>
+        tx.student.findFirst({
+          where: {
+            id: targetStudentId,
+            schoolId,
+            OR: [
+              ...(user.email ? [{ email: user.email }] : []),
+              { phone: user.phone },
+            ],
+          },
+        })
+      );
 
       return Boolean(student);
     }

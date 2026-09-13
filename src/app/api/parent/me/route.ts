@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
-import { prisma } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 
 /**
  * GET /api/parent/me
@@ -11,40 +11,42 @@ export async function GET(request: NextRequest) {
     const { context, schoolId } = await requireActiveSchool(request);
 
     // Live verification of guardian identity
-    const guardians = await prisma.guardian.findMany({
-      where: {
-        userId: context.userId,
-        schoolId,
-      },
-      include: {
-        students: {
-          include: {
-            student: {
-              select: {
-                id: true,
-                studentCode: true,
-                fullNameEn: true,
-                fullNameBn: true,
-                dateOfBirth: true,
-                gender: true,
-                bloodGroup: true,
-                photoUrl: true,
-                status: true,
-                enrollments: {
-                  where: { status: 'ACTIVE' },
-                  take: 1,
-                  include: {
-                    class: { select: { id: true, nameEn: true, nameBn: true } },
-                    section: { select: { id: true, nameEn: true, nameBn: true } },
-                    academicSession: { select: { id: true, name: true } },
+    const guardians = await withTenantContext(schoolId, (tx) =>
+      tx.guardian.findMany({
+        where: {
+          userId: context.userId,
+          schoolId,
+        },
+        include: {
+          students: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  studentCode: true,
+                  fullNameEn: true,
+                  fullNameBn: true,
+                  dateOfBirth: true,
+                  gender: true,
+                  bloodGroup: true,
+                  photoUrl: true,
+                  status: true,
+                  enrollments: {
+                    where: { status: 'ACTIVE' },
+                    take: 1,
+                    include: {
+                      class: { select: { id: true, nameEn: true, nameBn: true } },
+                      section: { select: { id: true, nameEn: true, nameBn: true } },
+                      academicSession: { select: { id: true, name: true } },
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      })
+    );
 
     if (guardians.length === 0) {
       return NextResponse.json(

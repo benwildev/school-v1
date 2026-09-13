@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/accounts/guardians/[guardianId]/revoke
@@ -97,14 +98,7 @@ export async function POST(
       message: 'অভিভাবকের পোর্টাল অ্যাক্সেস সফলভাবে প্রত্যাহার করা হয়েছে।',
       details: result.data,
     });
-  } catch (error: any) {
-    if (error?.status === 401 || error?.status === 403) {
-      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
-    }
-    console.error('Error revoking guardian account:', error);
-    return NextResponse.json(
-      { success: false, error: 'পোর্টাল অ্যাক্সেস প্রত্যাহার করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { MarksApproveSchema } from '@/lib/validation/exam';
 import { MarkWorkflowStatus } from '@prisma/client';
 
@@ -101,14 +102,16 @@ export async function POST(request: NextRequest) {
         status,
       },
     });
-  } catch (error: any) {
-    console.error('Error approving marks:', error);
-    if (error?.status && error?.message) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      'message' in error
+    ) {
+      const businessError = error as { status: number; message: string };
+      return NextResponse.json({ error: businessError.message }, { status: businessError.status });
     }
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

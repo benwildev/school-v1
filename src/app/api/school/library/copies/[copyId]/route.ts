@@ -3,6 +3,7 @@ import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { UpdateLibraryBookCopySchema } from '@/lib/validation/library';
 import { isValidCopyStatusTransition } from '@/lib/library/book-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(
   request: NextRequest,
@@ -41,9 +42,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: copy });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -85,8 +85,7 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

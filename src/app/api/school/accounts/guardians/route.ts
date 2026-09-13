@@ -3,6 +3,7 @@ import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { AccountQuerySchema } from '@/lib/validation/account';
 import { Prisma } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/accounts/guardians
@@ -182,14 +183,7 @@ export async function GET(request: NextRequest) {
       success: true,
       ...result,
     });
-  } catch (error: any) {
-    if (error?.status === 401 || error?.status === 403) {
-      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
-    }
-    console.error('Error fetching guardian accounts:', error);
-    return NextResponse.json(
-      { success: false, error: 'অভিভাবক অ্যাকাউন্ট তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

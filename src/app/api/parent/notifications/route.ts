@@ -1,30 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requireAuth } from '@/lib/authorization/engine';
 
 export async function GET(request: NextRequest) {
   try {
     const context = await requireAuth(request);
 
+    if (!context.activeSchoolId) {
+      return NextResponse.json({ error: 'FORBIDDEN: No active school selected.' }, { status: 403 });
+    }
+
     // 1. Find guardian record for this user
-    const guardian = await prisma.guardian.findFirst({
-      where: { userId: context.userId },
-      include: {
-        students: {
-          include: {
-            student: {
-              select: {
-                id: true,
-                studentCode: true,
-                fullNameEn: true,
-                fullNameBn: true,
-                schoolId: true,
+    const guardian = await withTenantContext(context.activeSchoolId, (tx) =>
+      tx.guardian.findFirst({
+        where: { userId: context.userId },
+        include: {
+          students: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  studentCode: true,
+                  fullNameEn: true,
+                  fullNameBn: true,
+                  schoolId: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      })
+    );
 
     if (!guardian) {
       return NextResponse.json({ error: 'Guardian profile not found for this account' }, { status: 403 });

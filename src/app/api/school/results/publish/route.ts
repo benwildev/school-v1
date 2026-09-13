@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { ResultPublishSchema } from '@/lib/validation/exam';
 import { ExamStatus, MarkWorkflowStatus } from '@prisma/client';
 

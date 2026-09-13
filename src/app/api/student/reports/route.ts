@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/authorization/engine';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 
 /**
  * GET /api/student/reports
@@ -11,25 +11,34 @@ export async function GET(request: NextRequest) {
   try {
     const context = await requireAuth(request);
 
+    if (!context.activeSchoolId) {
+      return NextResponse.json(
+        { success: false, error: 'FORBIDDEN: No active school selected.' },
+        { status: 403 }
+      );
+    }
+
     // 1. Resolve student identity via canonical StudentUser link
-    const studentUser = await prisma.studentUser.findUnique({
-      where: { userId: context.userId },
-      include: {
-        student: {
-          include: {
-            enrollments: {
-              where: { status: 'ACTIVE' },
-              include: {
-                class: { select: { nameEn: true, nameBn: true } },
-                section: { select: { nameEn: true, nameBn: true } },
-                academicSession: { select: { name: true } },
+    const studentUser = await withTenantContext(context.activeSchoolId, (tx) =>
+      tx.studentUser.findUnique({
+        where: { userId: context.userId },
+        include: {
+          student: {
+            include: {
+              enrollments: {
+                where: { status: 'ACTIVE' },
+                include: {
+                  class: { select: { nameEn: true, nameBn: true } },
+                  section: { select: { nameEn: true, nameBn: true } },
+                  academicSession: { select: { name: true } },
+                },
+                take: 1,
               },
-              take: 1,
             },
           },
         },
-      },
-    });
+      })
+    );
 
     if (!studentUser || !studentUser.student || studentUser.student.deletedAt) {
       return NextResponse.json(

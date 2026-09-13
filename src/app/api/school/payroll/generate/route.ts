@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { calculatePayrollRecord, ComponentInput, SalaryAdvanceRecoveryInput } from '@/lib/payroll/calculator';
 import { generatePayslipNumber } from '@/lib/payroll/payslip';
 import { PayrollGenerateSchema } from '@/lib/validation/payroll';
@@ -29,8 +30,10 @@ export async function POST(request: NextRequest) {
     const { periodId, campusId, departmentId, employeeIds } = parseResult.data;
 
     // 1. Fetch period and verify state
-    const period = await prisma.payrollPeriod.findFirst({
-      where: { id: periodId, schoolId },
+    const period = await withTenantContext(schoolId, async (tx) => {
+      return tx.payrollPeriod.findFirst({
+        where: { id: periodId, schoolId },
+      });
     });
 
     if (!period) {
@@ -57,13 +60,15 @@ export async function POST(request: NextRequest) {
     if (departmentId) empWhere.departmentId = departmentId;
     if (employeeIds && employeeIds.length > 0) empWhere.id = { in: employeeIds };
 
-    const employees = await prisma.employee.findMany({
-      where: empWhere,
-      include: {
-        department: true,
-        designation: true,
-        campus: true,
-      },
+    const employees = await withTenantContext(schoolId, async (tx) => {
+      return tx.employee.findMany({
+        where: empWhere,
+        include: {
+          department: true,
+          designation: true,
+          campus: true,
+        },
+      });
     });
 
     if (employees.length === 0) {
@@ -292,9 +297,7 @@ export async function POST(request: NextRequest) {
       message: `Successfully calculated payroll for ${generationResult.recordCount} employees.`,
       data: generationResult,
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

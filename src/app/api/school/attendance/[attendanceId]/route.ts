@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { AttendanceUpdateSchema } from '@/lib/validation/attendance';
 import { verifyTeacherAttendanceScope } from '@/lib/academic/teacher-scope';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/attendance/[attendanceId]
@@ -40,12 +41,9 @@ export async function GET(
     }
 
     return NextResponse.json({ data: record });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching attendance record:', error);
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -152,11 +150,8 @@ export async function PUT(
       message: 'Attendance corrected successfully',
       data: updated,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating attendance record:', error);
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

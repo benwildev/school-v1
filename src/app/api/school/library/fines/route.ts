@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { WaiveFineSchema, LibraryFineTypeSchema } from '@/lib/validation/library';
 import { calculateFineBalance } from '@/lib/library/fine-engine';
 import { z } from 'zod';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 const CreateManualFineSchema = z.object({
   studentId: z.string().uuid().optional().nullable(),
@@ -53,9 +54,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: fines });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -103,9 +103,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: fine }, { status: 201 });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -155,8 +154,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
 import { getManagementOverviewAnalytics } from '@/lib/reports/overview-analytics';
-import { prisma } from '@/lib/db';
+import { withIdentityContext } from '@/lib/db';
 
 /**
  * GET /api/school/analytics/overview
@@ -11,19 +11,22 @@ export async function GET(request: NextRequest) {
   try {
     const { context, schoolId } = await requireActiveSchool(request);
 
-    // Fetch user roles for the current school
-    const userRoles = await prisma.userRole.findMany({
-      where: {
-        userId: context.userId,
-        role: {
-          OR: [
-            { schoolId },
-            { schoolId: null, isSystemRole: true },
-          ],
+    // Fetch user roles for the current school (cross-school identity lookup:
+    // the userRole/role rows aren't scoped to a single tenant connection).
+    const userRoles = await withIdentityContext((tx) =>
+      tx.userRole.findMany({
+        where: {
+          userId: context.userId,
+          role: {
+            OR: [
+              { schoolId },
+              { schoolId: null, isSystemRole: true },
+            ],
+          },
         },
-      },
-      include: { role: { select: { code: true } } },
-    });
+        include: { role: { select: { code: true } } },
+      })
+    );
 
     const roleCodes = userRoles.map((ur: any) => ur.role?.code).filter(Boolean);
     if (context.user.isSuperAdmin) roleCodes.push('SUPER_ADMIN');

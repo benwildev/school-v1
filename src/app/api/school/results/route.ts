@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/results
@@ -76,11 +77,7 @@ export async function GET(request: NextRequest) {
         passPercentage,
       },
     });
-  } catch (error: any) {
-    console.error('Error fetching exam results:', error);
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

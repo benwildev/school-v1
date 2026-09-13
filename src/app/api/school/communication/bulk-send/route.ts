@@ -6,6 +6,7 @@ import { AuditAction } from '@prisma/client';
 import { CommunicationBulkSendSchema } from '@/lib/validation/communication';
 import { checkBulkCampaignThrottle } from '@/lib/security/communication-throttle';
 import { processBulkCampaign, CampaignRecipient } from '@/lib/communication/campaign-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -194,10 +195,7 @@ export async function POST(request: NextRequest) {
         },
       });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -4,6 +4,7 @@ import { requirePermission, authorize } from '@/lib/authorization/engine';
 import { withTenantContext } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { CampusCreateSchema } from '@/lib/validation/campus';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/campuses
@@ -45,20 +46,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: campuses, canEdit: editCheck.authorized });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('GET /api/school/campuses error:', error);
-    return NextResponse.json(
-      { success: false, error: 'ক্যাম্পাসের তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -144,19 +133,7 @@ export async function POST(req: NextRequest) {
       }
       throw dbError;
     }
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('POST /api/school/campuses error:', error);
-    return NextResponse.json(
-      { success: false, error: 'ক্যাম্পাস তৈরি করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

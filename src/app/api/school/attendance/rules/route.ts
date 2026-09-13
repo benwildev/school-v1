@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { AttendanceRuleCreateSchema } from '@/lib/validation/attendance-advanced';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,10 +19,8 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ success: true, data: rules });
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -63,10 +62,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ success: true, data: rule }, { status: 201 });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

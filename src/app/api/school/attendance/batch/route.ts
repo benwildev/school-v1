@@ -6,6 +6,7 @@ import { DailyAttendanceBatchSchema } from '@/lib/validation/attendance';
 import { verifyTeacherAttendanceScope } from '@/lib/academic/teacher-scope';
 import { enqueueAttendanceAbsenceNotifications } from '@/lib/communication/event-triggers';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/attendance/batch
@@ -176,17 +177,17 @@ export async function POST(request: NextRequest) {
         sectionId,
       },
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error submitting batch attendance:', error);
-    if (error.message?.includes('DUPLICATE_ATTENDANCE') || error.code === 'P2002') {
+    const isDuplicate =
+      (error instanceof Error && error.message?.includes('DUPLICATE_ATTENDANCE')) ||
+      (error as { code?: string })?.code === 'P2002';
+    if (isDuplicate) {
       return NextResponse.json(
         { error: 'Attendance has already been recorded for this class/section on this date. Duplicate submission prevented.' },
         { status: 409 }
       );
     }
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

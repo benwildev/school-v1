@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { InvoiceGenerateBatchSchema } from '@/lib/validation/finance';
 import { generateInvoiceNumber, calculateEffectiveDiscount } from '@/lib/finance/invoice';
 import { enqueueFeeNoticeNotifications } from '@/lib/communication/event-triggers';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/finance/invoices/generate
@@ -31,17 +32,19 @@ export async function POST(request: NextRequest) {
     const data = parseResult.data;
 
     // Verify session and class
-    const [session, classObj, feeType] = await Promise.all([
-      prisma.academicSession.findFirst({
-        where: { id: data.academicSessionId, schoolId },
-      }),
-      prisma.class.findFirst({
-        where: { id: data.classId, schoolId },
-      }),
-      prisma.feeType.findFirst({
-        where: { id: data.feeTypeId, schoolId },
-      }),
-    ]);
+    const [session, classObj, feeType] = await withTenantContext(schoolId, async (tx) => {
+      return Promise.all([
+        tx.academicSession.findFirst({
+          where: { id: data.academicSessionId, schoolId },
+        }),
+        tx.class.findFirst({
+          where: { id: data.classId, schoolId },
+        }),
+        tx.feeType.findFirst({
+          where: { id: data.feeTypeId, schoolId },
+        }),
+      ]);
+    });
 
     if (!session) {
       return NextResponse.json({ error: 'Academic session not found' }, { status: 404 });
@@ -64,12 +67,14 @@ export async function POST(request: NextRequest) {
       enrollmentWhere.sectionId = data.sectionId;
     }
 
-    const enrollments = await prisma.enrollment.findMany({
-      where: enrollmentWhere,
-      select: {
-        id: true,
-        studentId: true,
-      },
+    const enrollments = await withTenantContext(schoolId, async (tx) => {
+      return tx.enrollment.findMany({
+        where: enrollmentWhere,
+        select: {
+          id: true,
+          studentId: true,
+        },
+      });
     });
 
     if (enrollments.length === 0) {
@@ -81,30 +86,34 @@ export async function POST(request: NextRequest) {
 
     // 2. Fetch existing invoices for this period to prevent duplicate charges
     const enrollmentIds = enrollments.map((e) => e.id);
-    const existingInvoices = await prisma.studentFee.findMany({
-      where: {
-        schoolId,
-        feeTypeId: data.feeTypeId,
-        billingPeriodKey: data.billingPeriodKey,
-        enrollmentId: { in: enrollmentIds },
-      },
-      select: { enrollmentId: true },
+    const existingInvoices = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentFee.findMany({
+        where: {
+          schoolId,
+          feeTypeId: data.feeTypeId,
+          billingPeriodKey: data.billingPeriodKey,
+          enrollmentId: { in: enrollmentIds },
+        },
+        select: { enrollmentId: true },
+      });
     });
 
     const existingEnrollmentSet = new Set(existingInvoices.map((i) => i.enrollmentId));
 
     // 3. Fetch active discounts for these students
     const studentIds = enrollments.map((e) => e.studentId);
-    const discounts = await prisma.studentDiscount.findMany({
-      where: {
-        schoolId,
-        studentId: { in: studentIds },
-        status: 'ACTIVE',
-        OR: [
-          { feeTypeId: data.feeTypeId },
-          { feeTypeId: null },
-        ],
-      },
+    const discounts = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentDiscount.findMany({
+        where: {
+          schoolId,
+          studentId: { in: studentIds },
+          status: 'ACTIVE',
+          OR: [
+            { feeTypeId: data.feeTypeId },
+            { feeTypeId: null },
+          ],
+        },
+      });
     });
 
     const discountMap = new Map<string, typeof discounts[0]>();
@@ -229,10 +238,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

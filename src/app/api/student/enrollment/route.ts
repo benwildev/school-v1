@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
-import { prisma } from '@/lib/db';
+import { prisma, withTenantContext } from '@/lib/db';
 
 /**
  * GET /api/student/enrollment
@@ -11,12 +11,14 @@ export async function GET(request: NextRequest) {
     const { context, schoolId } = await requireActiveSchool(request);
 
     // Live verification of studentUser link
-    const link = await prisma.studentUser.findFirst({
-      where: {
-        userId: context.userId,
-        schoolId,
-      },
-    });
+    const link = await withTenantContext(schoolId, (tx) =>
+      tx.studentUser.findFirst({
+        where: {
+          userId: context.userId,
+          schoolId,
+        },
+      })
+    );
 
     if (!link) {
       return NextResponse.json(

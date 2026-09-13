@@ -4,6 +4,7 @@ import { requirePermission, authorize } from '@/lib/authorization/engine';
 import { withTenantContext } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { AcademicGroupCreateSchema } from '@/lib/validation/academic-structure';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/academic-structure/groups
@@ -54,20 +55,8 @@ export async function GET(req: NextRequest) {
       canUpdate: updateCheck.authorized,
       canDelete: deleteCheck.authorized,
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('GET /api/school/academic-structure/groups error:', error);
-    return NextResponse.json(
-      { success: false, error: 'গ্রুপের তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -155,19 +144,7 @@ export async function POST(req: NextRequest) {
       }
       throw dbErr;
     }
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('POST /api/school/academic-structure/groups error:', error);
-    return NextResponse.json(
-      { success: false, error: 'নতুন গ্রুপ তৈরি করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

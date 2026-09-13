@@ -1,6 +1,6 @@
 import { PermissionCode } from '../authorization/permissions';
 import { PermissionScope } from '@prisma/client';
-import { prisma } from '../db';
+import { withTenantContext } from '../db';
 import { AuthContext, authorize } from '../authorization/engine';
 import { ReportFilterParams } from './report-types';
 
@@ -57,33 +57,39 @@ export async function authorizeReportAccess(params: {
   let guardianId: string | null = null;
 
   if (['ASSIGNED_CLASSES', 'ASSIGNED_SUBJECTS', 'OWN_STUDENTS'].includes(scope)) {
-    const teacher = await prisma.teacher.findFirst({
-      where: { userId: context.userId, schoolId, status: 'ACTIVE', deletedAt: null },
-      select: { id: true },
-    });
+    const teacher = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findFirst({
+        where: { userId: context.userId, schoolId, status: 'ACTIVE', deletedAt: null },
+        select: { id: true },
+      })
+    );
     teacherId = teacher?.id || null;
   }
 
   if (scope === 'OWN_DATA') {
-    const student = await prisma.student.findFirst({
-      where: {
-        schoolId,
-        OR: [
-          ...(context.user.email ? [{ email: context.user.email }] : []),
-          { phone: context.user.phone },
-        ],
-        deletedAt: null,
-      },
-      select: { id: true },
-    });
+    const student = await withTenantContext(schoolId, (tx) =>
+      tx.student.findFirst({
+        where: {
+          schoolId,
+          OR: [
+            ...(context.user.email ? [{ email: context.user.email }] : []),
+            { phone: context.user.phone },
+          ],
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+    );
     studentId = student?.id || null;
   }
 
   if (scope === 'OWN_CHILDREN') {
-    const guardian = await prisma.guardian.findFirst({
-      where: { userId: context.userId, schoolId },
-      select: { id: true },
-    });
+    const guardian = await withTenantContext(schoolId, (tx) =>
+      tx.guardian.findFirst({
+        where: { userId: context.userId, schoolId },
+        select: { id: true },
+      })
+    );
     guardianId = guardian?.id || null;
   }
 

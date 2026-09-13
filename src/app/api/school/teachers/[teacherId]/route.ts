@@ -15,31 +15,34 @@ export async function GET(
 ) {
   try {
     const { schoolId } = await requirePermission(request, { permission: 'STAFF_VIEW' });
+    const teacherId = (await params).teacherId;
 
-    const teacher = await prisma.teacher.findFirst({
-      where: {
-        id: (await params).teacherId,
-        schoolId
-      },
-      include: {
-        campus: true,
-        user: {
-          select: {
-            id: true,
-            status: true
-          }
+    const teacher = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findFirst({
+        where: {
+          id: teacherId,
+          schoolId
         },
-        assignments: {
-          include: {
-            academicSession: true,
-            class: true,
-            section: true,
-            subject: true
+        include: {
+          campus: true,
+          user: {
+            select: {
+              id: true,
+              status: true
+            }
           },
-          orderBy: { createdAt: 'desc' }
+          assignments: {
+            include: {
+              academicSession: true,
+              class: true,
+              section: true,
+              subject: true
+            },
+            orderBy: { createdAt: 'desc' }
+          }
         }
-      }
-    });
+      })
+    );
 
     if (!teacher) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
@@ -67,14 +70,17 @@ export async function PATCH(
   try {
     const { context, schoolId } = await requirePermission(request, { permission: 'STAFF_UPDATE' });
     const userId = context.userId;
+    const teacherId = (await params).teacherId;
 
     // Verify ownership
-    const existingTeacher = await prisma.teacher.findFirst({
-      where: {
-        id: (await params).teacherId,
-        schoolId
-      }
-    });
+    const existingTeacher = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findFirst({
+        where: {
+          id: teacherId,
+          schoolId
+        }
+      })
+    );
 
     if (!existingTeacher) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
@@ -107,22 +113,28 @@ export async function PATCH(
 
     // Uniqueness checks if updating code or phone
     if (data.teacherCode && data.teacherCode !== existingTeacher.teacherCode) {
-      const existingCode = await prisma.teacher.findUnique({
-        where: {
-          schoolId_teacherCode: { schoolId, teacherCode: data.teacherCode }
-        }
-      });
+      const teacherCode = data.teacherCode;
+      const existingCode = await withTenantContext(schoolId, (tx) =>
+        tx.teacher.findUnique({
+          where: {
+            schoolId_teacherCode: { schoolId, teacherCode }
+          }
+        })
+      );
       if (existingCode) {
         return NextResponse.json({ error: 'Teacher code already exists in this school' }, { status: 409 });
       }
     }
 
     if (data.phone && data.phone !== existingTeacher.phone) {
-      const existingPhone = await prisma.teacher.findUnique({
-        where: {
-          schoolId_phone: { schoolId, phone: data.phone }
-        }
-      });
+      const phone = data.phone;
+      const existingPhone = await withTenantContext(schoolId, (tx) =>
+        tx.teacher.findUnique({
+          where: {
+            schoolId_phone: { schoolId, phone }
+          }
+        })
+      );
       if (existingPhone) {
         return NextResponse.json({ error: 'Phone number already exists in this school' }, { status: 409 });
       }
@@ -130,7 +142,7 @@ export async function PATCH(
 
     const updatedTeacher = await withTenantContext(schoolId, async (tx) => {
       const teacher = await tx.teacher.update({
-        where: { id: (await params).teacherId },
+        where: { id: teacherId },
         data,
         include: {
           campus: true,

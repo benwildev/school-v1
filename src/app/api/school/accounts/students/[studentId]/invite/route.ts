@@ -4,6 +4,7 @@ import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { CreateInvitationSchema } from '@/lib/validation/account';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/accounts/students/[studentId]/invite
@@ -142,14 +143,7 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error?.status === 401 || error?.status === 403) {
-      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
-    }
-    console.error('Error inviting student:', error);
-    return NextResponse.json(
-      { success: false, error: 'আমন্ত্রণ তৈরিতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { MarksBulkSaveSchema } from '@/lib/validation/exam';
 import { verifyTeacherMarksScope, isAdministrativeStaff } from '@/lib/academic/teacher-scope';
 import { calculateSubjectGrade } from '@/lib/academic/grading';
@@ -266,11 +267,7 @@ export async function POST(request: NextRequest) {
         workflowStatus: targetWorkflowStatus,
       },
     });
-  } catch (error: any) {
-    console.error('Error saving bulk marks:', error);
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

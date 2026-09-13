@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EduSmart BD — School Management System (এডুস্মার্ট বিডি)",
-  description: "Comprehensive multi-tenant school management and education administration SaaS for Bangladeshi educational institutions.",
+  title: "School Management System",
+  description: "Digital school management, results, attendance, and online admissions.",
 };
 
 export default function RootLayout({
@@ -33,8 +33,11 @@ export default function RootLayout({
     <html
       lang="bn"
       className={`${hindSiliguri.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans">
+        {children}
+      </body>
     </html>
   );
 }

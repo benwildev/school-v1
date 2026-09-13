@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { EmployeeUpdateSchema } from '@/lib/validation/hr';
 import { AuditAction, EmployeeStatus } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(
   request: NextRequest,
@@ -60,10 +61,8 @@ export async function GET(
         };
 
     return NextResponse.json({ success: true, data: safeEmployee });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -153,10 +152,8 @@ export async function PUT(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -204,9 +201,7 @@ export async function DELETE(
       message: 'Employee deactivated successfully. Historical payroll records preserved.',
       data: deactivated,
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

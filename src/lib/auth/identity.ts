@@ -1,4 +1,4 @@
-import { prisma } from '../db';
+import { withIdentityContext } from '../db';
 import { verifyPassword } from './crypto';
 import { checkLoginThrottle, recordFailedLogin, clearLoginThrottle } from './throttle';
 import { createSessionToken, setSessionCookie, clearSessionCookie, revokeSession } from './session';
@@ -72,18 +72,21 @@ export async function authenticateUser(params: {
   const isEmail = identifier.includes('@');
   const normalizedIdentifier = isEmail ? identifier.toLowerCase().trim() : normalizePhone(identifier);
 
-  const user = await prisma.user.findFirst({
-    where: isEmail
-      ? { email: { equals: normalizedIdentifier, mode: 'insensitive' }, deletedAt: null }
-      : { phone: normalizedIdentifier, deletedAt: null },
-    include: {
-      userRoles: {
-        include: {
-          role: true,
+  // Cross-school identity lookup by email/phone: the target school isn't known yet.
+  const user = await withIdentityContext((tx) =>
+    tx.user.findFirst({
+      where: isEmail
+        ? { email: { equals: normalizedIdentifier, mode: 'insensitive' }, deletedAt: null }
+        : { phone: normalizedIdentifier, deletedAt: null },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
         },
       },
-    },
-  });
+    })
+  );
 
   if (!user) {
     await recordFailedLogin(identifier, ipAddress);
@@ -150,13 +153,15 @@ export async function authenticateUser(params: {
   await setSessionCookie(token, expiresAt);
 
   // 7. Update User Last Login
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      lastLoginAt: new Date(),
-      lastLoginIp: ipAddress || null,
-    },
-  });
+  await withIdentityContext((tx) =>
+    tx.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+        lastLoginIp: ipAddress || null,
+      },
+    })
+  );
 
   // 8. Log Audit Event
   if (activeSchoolId) {

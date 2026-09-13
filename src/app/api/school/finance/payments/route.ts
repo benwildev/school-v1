@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { PaymentRecordSchema } from '@/lib/validation/finance';
 import { generatePaymentNumber } from '@/lib/finance/invoice';
 import { processPaymentAllocation } from '@/lib/finance/allocation';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/payments
@@ -37,46 +38,48 @@ export async function GET(request: NextRequest) {
       if (endDate) where.paymentDate.lte = new Date(endDate);
     }
 
-    const [payments, totalCount] = await Promise.all([
-      prisma.payment.findMany({
-        where,
-        include: {
-          student: {
-            select: {
-              id: true,
-              studentCode: true,
-              firstNameEn: true,
-              lastNameEn: true,
-              fullNameEn: true,
-              fullNameBn: true,
+    const [payments, totalCount] = await withTenantContext(schoolId, async (tx) => {
+      return Promise.all([
+        tx.payment.findMany({
+          where,
+          include: {
+            student: {
+              select: {
+                id: true,
+                studentCode: true,
+                firstNameEn: true,
+                lastNameEn: true,
+                fullNameEn: true,
+                fullNameBn: true,
+              },
             },
-          },
-          allocations: {
-            include: {
-              studentFee: {
-                select: {
-                  invoiceNumber: true,
-                  billingPeriodKey: true,
-                  netAmount: true,
-                  dueAmount: true,
+            allocations: {
+              include: {
+                studentFee: {
+                  select: {
+                    invoiceNumber: true,
+                    billingPeriodKey: true,
+                    netAmount: true,
+                    dueAmount: true,
+                  },
                 },
               },
             },
-          },
-          receipt: true,
-          receivedBy: {
-            select: {
-              id: true,
-              fullName: true,
+            receipt: true,
+            receivedBy: {
+              select: {
+                id: true,
+                fullName: true,
+              },
             },
           },
-        },
-        orderBy: { paymentDate: 'desc' },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.payment.count({ where }),
-    ]);
+          orderBy: { paymentDate: 'desc' },
+          take: limit,
+          skip: offset,
+        }),
+        tx.payment.count({ where }),
+      ]);
+    });
 
     return NextResponse.json({
       success: true,
@@ -87,11 +90,8 @@ export async function GET(request: NextRequest) {
         offset,
       },
     });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -120,14 +120,16 @@ export async function POST(request: NextRequest) {
     const data = parseResult.data;
 
     // Verify student and enrollment belong to the school
-    const [student, enrollment] = await Promise.all([
-      prisma.student.findFirst({
-        where: { id: data.studentId, schoolId },
-      }),
-      prisma.enrollment.findFirst({
-        where: { id: data.enrollmentId, schoolId, studentId: data.studentId },
-      }),
-    ]);
+    const [student, enrollment] = await withTenantContext(schoolId, async (tx) => {
+      return Promise.all([
+        tx.student.findFirst({
+          where: { id: data.studentId, schoolId },
+        }),
+        tx.enrollment.findFirst({
+          where: { id: data.enrollmentId, schoolId, studentId: data.studentId },
+        }),
+      ]);
+    });
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found in this school' }, { status: 404 });
@@ -213,10 +215,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

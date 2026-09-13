@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { InvoiceCancelSchema } from '@/lib/validation/finance';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/finance/invoices/[invoiceId]/cancel
@@ -20,8 +21,10 @@ export async function POST(
     });
     const { invoiceId } = await params;
 
-    const invoice = await prisma.studentFee.findFirst({
-      where: { id: invoiceId, schoolId },
+    const invoice = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentFee.findFirst({
+        where: { id: invoiceId, schoolId },
+      });
     });
 
     if (!invoice) {
@@ -80,10 +83,7 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

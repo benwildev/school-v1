@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withTenantContext } from '@/lib/db';
 import { requireAuth } from '@/lib/authorization/engine';
 
 /**
@@ -10,10 +10,16 @@ export async function GET(request: NextRequest) {
   try {
     const context = await requireAuth(request);
 
-    const studentUser = await prisma.studentUser.findUnique({
-      where: { userId: context.userId },
-      include: { student: true },
-    });
+    if (!context.activeSchoolId) {
+      return NextResponse.json({ error: 'FORBIDDEN: No active school selected.' }, { status: 403 });
+    }
+
+    const studentUser = await withTenantContext(context.activeSchoolId, (tx) =>
+      tx.studentUser.findUnique({
+        where: { userId: context.userId },
+        include: { student: true },
+      })
+    );
 
     if (!studentUser) {
       return NextResponse.json(

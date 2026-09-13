@@ -5,6 +5,7 @@ import { CommunicationSendSchema } from '@/lib/validation/communication';
 import { CommunicationProviderRegistry } from '@/lib/communication/provider-abstraction';
 import { checkMessageSendThrottle } from '@/lib/security/communication-throttle';
 import { normalizeBangladeshiPhone } from '@/lib/communication/phone-normalization';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -152,10 +153,7 @@ export async function POST(request: NextRequest) {
         data: log,
       }, { status: deliveryStatus === 'SENT' ? 200 : 502 });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -18,9 +18,16 @@ async function setupAppUser() {
     console.log('Current edusmart_app_user info:', roleRes.rows[0]);
 
     // 2. Set a strong password for edusmart_app_user
-    // Use a fixed strong password for the Neon user or generate one
-    const appUserPassword = 'edusmart_app_password_2026_secure!';
-    await client.query(`ALTER ROLE edusmart_app_user WITH PASSWORD '${appUserPassword}';`);
+    const appUserPassword = process.env.EDUSMART_APP_DB_PASSWORD;
+    if (!appUserPassword || appUserPassword.length < 16) {
+      throw new Error(
+        'EDUSMART_APP_DB_PASSWORD env var must be set to a strong password (16+ chars) before running this script.'
+      );
+    }
+    // ALTER ROLE does not support bind parameters for the PASSWORD literal; this
+    // value is an operator-supplied secret from the environment, not user input.
+    const escapedPassword = appUserPassword.replace(/'/g, "''");
+    await client.query(`ALTER ROLE edusmart_app_user WITH PASSWORD '${escapedPassword}';`);
     console.log('Updated role password. rolbypassrls is already false.');
 
     // 3. Grant schema permissions

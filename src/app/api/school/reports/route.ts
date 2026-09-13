@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
 import { REPORT_REGISTRY } from '@/lib/reports/report-registry';
-import { prisma } from '@/lib/db';
+import { withIdentityContext } from '@/lib/db';
 
 
 /**
@@ -12,33 +12,36 @@ export async function GET(request: NextRequest) {
   try {
     const { context, schoolId } = await requireActiveSchool(request);
 
-    // Fetch user permissions for the active school
-    const user = await prisma.user.findUnique({
-      where: { id: context.userId, deletedAt: null },
-      include: {
-        userRoles: {
-          where: {
-            role: {
-              OR: [
-                { schoolId: schoolId },
-                { schoolId: null, isSystemRole: true },
-              ],
+    // Fetch user permissions for the active school (cross-school identity lookup:
+    // the user row and its roles aren't scoped to one school).
+    const user = await withIdentityContext((tx) =>
+      tx.user.findUnique({
+        where: { id: context.userId, deletedAt: null },
+        include: {
+          userRoles: {
+            where: {
+              role: {
+                OR: [
+                  { schoolId: schoolId },
+                  { schoolId: null, isSystemRole: true },
+                ],
+              },
             },
-          },
-          include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
+            include: {
+              role: {
+                include: {
+                  rolePermissions: {
+                    include: {
+                      permission: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      })
+    );
 
     const isOwnerOrAdmin = user?.userRoles.some((ur) =>
       ['SCHOOL_OWNER', 'PRINCIPAL', 'ADMIN'].includes(ur.role.code.toUpperCase())

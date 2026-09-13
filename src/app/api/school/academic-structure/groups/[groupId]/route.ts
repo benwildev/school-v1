@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { withTenantContext } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { AcademicGroupUpdateSchema } from '@/lib/validation/academic-structure';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 interface RouteParams {
   params: Promise<{ groupId: string }>;
@@ -49,20 +50,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ success: true, data: group });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('GET /api/school/academic-structure/groups/[groupId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'গ্রুপের তথ্য লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -173,20 +162,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       }
       throw dbErr;
     }
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('PATCH /api/school/academic-structure/groups/[groupId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'গ্রুপের তথ্য আপডেট করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -280,19 +257,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       }
       throw dbErr;
     }
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('DELETE /api/school/academic-structure/groups/[groupId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'গ্রুপ মুছে ফেলতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

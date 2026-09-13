@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '../db';
+import { withIdentityContext } from '../db';
 import { verifySessionToken, getSessionCookie } from '../auth/session';
 import { validateSchoolMembership } from '../tenant/membership';
 import { PermissionCode, PERMISSION_CATALOG } from './permissions';
@@ -43,33 +43,36 @@ export async function authorize(params: {
     return { authorized: false, reason: 'Missing required authorization parameters.' };
   }
 
-  // 1. Fetch user & check status
-  const user = await prisma.user.findUnique({
-    where: { id: userId, deletedAt: null },
-    include: {
-      userRoles: {
-        where: {
-          role: {
-            OR: [
-              { schoolId: schoolId },
-              { schoolId: null, isSystemRole: true },
-            ],
+  // 1. Fetch user & check status (cross-school identity lookup: this user may hold
+  // roles at multiple schools, so it must run before any single tenant scope applies)
+  const user = await withIdentityContext((tx) =>
+    tx.user.findUnique({
+      where: { id: userId, deletedAt: null },
+      include: {
+        userRoles: {
+          where: {
+            role: {
+              OR: [
+                { schoolId: schoolId },
+                { schoolId: null, isSystemRole: true },
+              ],
+            },
           },
-        },
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true,
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
                 },
               },
             },
           },
         },
       },
-    },
-  });
+    })
+  );
 
   if (!user || user.status !== 'ACTIVE') {
     return { authorized: false, reason: 'User account is inactive or not found.' };
@@ -207,18 +210,20 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
   const payload = await verifySessionToken(token);
   if (!payload || !payload.userId) return null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId, deletedAt: null },
-    select: {
-      id: true,
-      email: true,
-      phone: true,
-      fullName: true,
-      isSuperAdmin: true,
-      status: true,
-      schoolId: true,
-    },
-  });
+  const user = await withIdentityContext((tx) =>
+    tx.user.findUnique({
+      where: { id: payload.userId, deletedAt: null },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        fullName: true,
+        isSuperAdmin: true,
+        status: true,
+        schoolId: true,
+      },
+    })
+  );
 
   if (!user || user.status !== 'ACTIVE') {
     return null;

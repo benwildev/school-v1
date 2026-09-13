@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { FeeStructureCreateSchema } from '@/lib/validation/finance';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/fee-structures
@@ -28,23 +29,22 @@ export async function GET(request: NextRequest) {
     if (feeTypeId) where.feeTypeId = feeTypeId;
     if (status) where.status = status;
 
-    const structures = await prisma.feeStructure.findMany({
-      where,
-      include: {
-        feeType: true,
-        class: true,
-        group: true,
-        academicSession: true,
-      },
-      orderBy: [{ class: { nameEn: 'asc' } }, { feeType: { nameEn: 'asc' } }],
+    const structures = await withTenantContext(schoolId, async (tx) => {
+      return tx.feeStructure.findMany({
+        where,
+        include: {
+          feeType: true,
+          class: true,
+          group: true,
+          academicSession: true,
+        },
+        orderBy: [{ class: { nameEn: 'asc' } }, { feeType: { nameEn: 'asc' } }],
+      });
     });
 
     return NextResponse.json({ success: true, data: structures });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -72,17 +72,19 @@ export async function POST(request: NextRequest) {
     const data = parseResult.data;
 
     // Verify session, class, feeType belong to school
-    const [session, classObj, feeType] = await Promise.all([
-      prisma.academicSession.findFirst({
-        where: { id: data.academicSessionId, schoolId },
-      }),
-      prisma.class.findFirst({
-        where: { id: data.classId, schoolId },
-      }),
-      prisma.feeType.findFirst({
-        where: { id: data.feeTypeId, schoolId },
-      }),
-    ]);
+    const [session, classObj, feeType] = await withTenantContext(schoolId, async (tx) => {
+      return Promise.all([
+        tx.academicSession.findFirst({
+          where: { id: data.academicSessionId, schoolId },
+        }),
+        tx.class.findFirst({
+          where: { id: data.classId, schoolId },
+        }),
+        tx.feeType.findFirst({
+          where: { id: data.feeTypeId, schoolId },
+        }),
+      ]);
+    });
 
     if (!session) {
       return NextResponse.json({ error: 'Academic session not found' }, { status: 404 });
@@ -95,14 +97,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check duplicate structure
-    const existing = await prisma.feeStructure.findFirst({
-      where: {
-        schoolId,
-        academicSessionId: data.academicSessionId,
-        classId: data.classId,
-        feeTypeId: data.feeTypeId,
-        groupId: data.groupId || null,
-      },
+    const existing = await withTenantContext(schoolId, async (tx) => {
+      return tx.feeStructure.findFirst({
+        where: {
+          schoolId,
+          academicSessionId: data.academicSessionId,
+          classId: data.classId,
+          feeTypeId: data.feeTypeId,
+          groupId: data.groupId || null,
+        },
+      });
     });
 
     if (existing) {
@@ -146,10 +150,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: structure }, { status: 201 });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { generateStudentLedger } from '@/lib/finance/ledger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/reports/ledger/[studentId]
@@ -29,10 +30,7 @@ export async function GET(
     const ledger = await generateStudentLedger(prisma, schoolId, studentId);
 
     return NextResponse.json({ success: true, data: ledger });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

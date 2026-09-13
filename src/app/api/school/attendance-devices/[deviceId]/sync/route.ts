@@ -5,6 +5,7 @@ import { logAuditEvent } from '@/lib/audit/logger';
 import { AuditAction } from '@prisma/client';
 import { decryptCredential, redactDeviceSecrets } from '@/lib/security/credential-encryption';
 import { AttendanceAdapterRegistry } from '@/lib/attendance/device-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function POST(
   request: NextRequest,
@@ -76,9 +77,7 @@ export async function POST(
         },
       });
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

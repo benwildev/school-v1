@@ -38,28 +38,30 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const teachers = await prisma.teacher.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            status: true,
+    const teachers = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              status: true,
+            }
+          },
+          campus: {
+            select: {
+              id: true,
+              nameEn: true,
+              nameBn: true,
+            }
           }
         },
-        campus: {
-          select: {
-            id: true,
-            nameEn: true,
-            nameBn: true,
-          }
-        }
-      },
-      orderBy: [
-        { designation: 'asc' },
-        { fullNameEn: 'asc' }
-      ]
-    });
+        orderBy: [
+          { designation: 'asc' },
+          { fullNameEn: 'asc' }
+        ]
+      })
+    );
 
     return NextResponse.json({ data: teachers });
   } catch (error: any) {
@@ -109,14 +111,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Uniqueness checks
-    const existingCode = await prisma.teacher.findUnique({
-      where: {
-        schoolId_teacherCode: {
-          schoolId,
-          teacherCode: data.teacherCode
+    const existingCode = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findUnique({
+        where: {
+          schoolId_teacherCode: {
+            schoolId,
+            teacherCode: data.teacherCode
+          }
         }
-      }
-    });
+      })
+    );
 
     if (existingCode) {
       return NextResponse.json(
@@ -125,14 +129,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingPhone = await prisma.teacher.findUnique({
-      where: {
-        schoolId_phone: {
-          schoolId,
-          phone: data.phone
+    const existingPhone = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findUnique({
+        where: {
+          schoolId_phone: {
+            schoolId,
+            phone: data.phone
+          }
         }
-      }
-    });
+      })
+    );
 
     if (existingPhone) {
       return NextResponse.json(

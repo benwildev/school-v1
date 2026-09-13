@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { validateDocumentUrl } from '@/lib/security/document-validation';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/admissions/[applicationId]/documents/[documentId]
@@ -76,25 +77,11 @@ export async function GET(
     response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     return response;
-  } catch (error: unknown) {
+  } catch (error) {
     const err = error as { status?: number; message?: string };
-    if (err.status) {
+    if (err?.status) {
       return NextResponse.json({ success: false, error: err.message }, { status: err.status });
     }
-    const e = error as Error;
-    if (e.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত অ্যাক্সেস।' }, { status: 401 });
-    }
-    if (e.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: 'নথি দেখার অনুমতি আপনার নেই।' },
-        { status: 403 }
-      );
-    }
-    console.error('Admission Document Access Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'নথি লোড করার সময় ত্রুটি ঘটেছে।' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

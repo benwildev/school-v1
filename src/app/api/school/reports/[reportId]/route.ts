@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
 import { executeReport } from '@/lib/reports/report-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/reports/[reportId]
@@ -24,19 +25,10 @@ export async function GET(
     });
 
     return NextResponse.json(result);
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
-    if (error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    if (error.message?.startsWith('NOT_FOUND')) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-    if (error.message?.startsWith('INVALID_FILTERS')) {
+  } catch (error) {
+    if (error instanceof Error && error.message?.startsWith('INVALID_FILTERS')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

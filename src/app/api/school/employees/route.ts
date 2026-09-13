@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { prisma, withTenantContext, withIdentityContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { generateEmployeeCode } from '@/lib/hr/employee-code';
@@ -131,9 +131,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (data.teacherId) {
-      const teacher = await prisma.teacher.findFirst({
-        where: { id: data.teacherId, schoolId },
-      });
+      const teacherId = data.teacherId;
+      const teacher = await withTenantContext(schoolId, (tx) =>
+        tx.teacher.findFirst({
+          where: { id: teacherId, schoolId },
+        })
+      );
       if (!teacher) return NextResponse.json({ error: 'Teacher does not belong to this school.' }, { status: 400 });
 
       const existingLink = await prisma.employee.findFirst({
@@ -145,9 +148,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (data.userId) {
-      const user = await prisma.user.findFirst({
-        where: { id: data.userId },
-      });
+      const linkedUserId = data.userId;
+      // Cross-school identity lookup: the linked user isn't guaranteed to already
+      // belong to this school (e.g. a fresh account being attached as staff).
+      const user = await withIdentityContext((tx) =>
+        tx.user.findFirst({
+          where: { id: linkedUserId },
+        })
+      );
       if (!user) return NextResponse.json({ error: 'Linked user not found.' }, { status: 400 });
 
       const existingUser = await prisma.employee.findFirst({

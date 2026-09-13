@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { FeeTypeCreateSchema } from '@/lib/validation/finance';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/fee-types
@@ -16,17 +17,16 @@ export async function GET(request: NextRequest) {
       permission: 'FEES_VIEW',
     });
 
-    const feeTypes = await prisma.feeType.findMany({
-      where: { schoolId },
-      orderBy: { nameEn: 'asc' },
+    const feeTypes = await withTenantContext(schoolId, async (tx) => {
+      return tx.feeType.findMany({
+        where: { schoolId },
+        orderBy: { nameEn: 'asc' },
+      });
     });
 
     return NextResponse.json({ success: true, data: feeTypes });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -54,13 +54,15 @@ export async function POST(request: NextRequest) {
     const data = parseResult.data;
 
     // Check duplicate code
-    const existing = await prisma.feeType.findUnique({
-      where: {
-        schoolId_code: {
-          schoolId,
-          code: data.code,
+    const existing = await withTenantContext(schoolId, async (tx) => {
+      return tx.feeType.findUnique({
+        where: {
+          schoolId_code: {
+            schoolId,
+            code: data.code,
+          },
         },
-      },
+      });
     });
 
     if (existing) {
@@ -98,10 +100,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: feeType }, { status: 201 });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

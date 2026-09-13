@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { AdvanceStatus, AuditAction, PayrollPeriodStatus, PayrollRecordStatus, Prisma } from '@prisma/client';
 
 export async function POST(
@@ -172,9 +173,7 @@ export async function POST(
       message: 'Payroll successfully finalized and locked permanently.',
       data: finalizedResult.data,
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 400 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

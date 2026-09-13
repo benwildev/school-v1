@@ -78,9 +78,11 @@ export async function POST(request: NextRequest) {
     const data = validatedData.data;
 
     // VALIDATION 1: Teacher belongs to this school
-    const teacher = await prisma.teacher.findFirst({
-      where: { id: data.teacherId, schoolId }
-    });
+    const teacher = await withTenantContext(schoolId, (tx) =>
+      tx.teacher.findFirst({
+        where: { id: data.teacherId, schoolId }
+      })
+    );
     if (!teacher) return NextResponse.json({ error: 'Teacher not found or does not belong to this school' }, { status: 400 });
 
     // VALIDATION 2: Academic Session belongs to this school

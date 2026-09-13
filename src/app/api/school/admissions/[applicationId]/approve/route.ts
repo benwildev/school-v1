@@ -17,6 +17,7 @@ import {
 } from '@prisma/client';
 import { generateInvoiceNumber, generatePaymentNumber } from '@/lib/finance/invoice';
 import { processPaymentAllocation } from '@/lib/finance/allocation';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/admissions/[applicationId]/approve
@@ -524,9 +525,9 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error: unknown) {
+  } catch (error) {
     const err = error as { status?: number; code?: string; message?: string };
-    if (err.status) {
+    if (err?.status) {
       if (err.code === 'DUPLICATE_CONVERSION' && schoolId) {
         try {
           await logAuditEvent({
@@ -545,20 +546,6 @@ export async function POST(
       }
       return NextResponse.json({ success: false, error: err.message }, { status: err.status });
     }
-    const e = error as Error;
-    if (e.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত অ্যাক্সেস।' }, { status: 401 });
-    }
-    if (e.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: 'ভর্তি অনুমোদনের অনুমতি আপনার নেই।' },
-        { status: 403 }
-      );
-    }
-    console.error('Admission Conversion Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'ভর্তি অনুমোদন ও রূপান্তরের সময় সার্ভার ত্রুটি ঘটেছে।' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

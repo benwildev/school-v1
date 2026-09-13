@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/authorization/engine';
 import { getUserAccessibleSchools } from '@/lib/tenant/membership';
-import { prisma } from '@/lib/db';
+import { withIdentityContext } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,29 +18,33 @@ export async function GET(req: NextRequest) {
     let permissionCodes: string[] = [];
 
     if (activeSchoolId) {
-      const userWithRoles = await prisma.user.findUnique({
-        where: { id: authContext.userId },
-        include: {
-          userRoles: {
-            where: {
-              role: {
-                OR: [{ schoolId: activeSchoolId }, { schoolId: null, isSystemRole: true }],
+      // Cross-school identity lookup: the user row and its roles aren't scoped
+      // to a single tenant connection.
+      const userWithRoles = await withIdentityContext((tx) =>
+        tx.user.findUnique({
+          where: { id: authContext.userId },
+          include: {
+            userRoles: {
+              where: {
+                role: {
+                  OR: [{ schoolId: activeSchoolId }, { schoolId: null, isSystemRole: true }],
+                },
               },
-            },
-            include: {
-              role: {
-                include: {
-                  rolePermissions: {
-                    include: {
-                      permission: true,
+              include: {
+                role: {
+                  include: {
+                    rolePermissions: {
+                      include: {
+                        permission: true,
+                      },
                     },
                   },
                 },
               },
             },
           },
-        },
-      });
+        })
+      );
 
       if (userWithRoles) {
         rolesInSchool = userWithRoles.userRoles.map((ur) => ({

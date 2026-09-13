@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { GuardianCreateSchema, GuardianFilterSchema } from '@/lib/validation/guardian';
 import { Prisma } from '@prisma/client';
 
@@ -111,23 +112,8 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(result.total / pageSize) || 1,
       },
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত এক্সেস।' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('FORBIDDEN: ', '') },
-        { status: 403 }
-      );
-    }
-
-    console.error('GET /api/school/guardians error:', error);
-    return NextResponse.json(
-      { success: false, error: 'অভিভাবক তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -230,29 +216,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত এক্সেস।' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('FORBIDDEN: ', '') },
-        { status: 403 }
-      );
-    }
-
+  } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'এই অভিভাবকের তথ্য ইতিমধ্যে বিদ্যমান রয়েছে।' },
         { status: 409 }
       );
     }
-
-    console.error('POST /api/school/guardians error:', error);
-    return NextResponse.json(
-      { success: false, error: 'অভিভাবক নিবন্ধন করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

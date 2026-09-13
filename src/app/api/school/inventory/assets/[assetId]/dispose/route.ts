@@ -3,6 +3,7 @@ import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { DisposeAssetSchema } from '@/lib/validation/inventory';
 import { validateAssetDisposal } from '@/lib/inventory/asset-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function POST(
   request: NextRequest,
@@ -65,8 +66,7 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, data: disposed });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

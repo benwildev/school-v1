@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { GuardianUpdateSchema } from '@/lib/validation/guardian';
 import { Prisma } from '@prisma/client';
 
@@ -87,23 +88,8 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       success: true,
       data: guardian,
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত এক্সেস।' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('FORBIDDEN: ', '') },
-        { status: 403 }
-      );
-    }
-
-    console.error('GET /api/school/guardians/[guardianId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'অভিভাবকের তথ্য লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -218,29 +204,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       data: updatedGuardian,
       message: 'অভিভাবকের তথ্য সফলভাবে হালনাগাদ করা হয়েছে।',
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত এক্সেস।' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('FORBIDDEN: ', '') },
-        { status: 403 }
-      );
-    }
-    if (err.message?.startsWith('NOT_FOUND')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('NOT_FOUND: ', '') },
-        { status: 404 }
-      );
-    }
-
-    console.error('PATCH /api/school/guardians/[guardianId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'অভিভাবকের তথ্য হালনাগাদ করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -326,28 +291,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
       success: true,
       message: 'অভিভাবক সফলভাবে মুছে ফেলা হয়েছে।',
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত এক্সেস।' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('FORBIDDEN: ', '') },
-        { status: 403 }
-      );
-    }
-    if (err.message?.startsWith('NOT_FOUND')) {
-      return NextResponse.json(
-        { success: false, error: err.message.replace('NOT_FOUND: ', '') },
-        { status: 404 }
-      );
-    }
-
-    console.error('DELETE /api/school/guardians/[guardianId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'অভিভাবক মুছে ফেলতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

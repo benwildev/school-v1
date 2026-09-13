@@ -6,6 +6,7 @@ import {
   NotificationTemplateUpdateSchema,
 } from '@/lib/validation/communication';
 import { extractTemplateVariables } from '@/lib/communication/template-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,10 +20,8 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ success: true, data: templates });
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -70,11 +69,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ success: true, data: template }, { status: 201 });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -107,10 +103,7 @@ export async function PUT(request: NextRequest) {
 
       return NextResponse.json({ success: true, data: updated });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

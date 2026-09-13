@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { CreateTripSchema } from '@/lib/validation/transport';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,9 +45,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: trips });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -134,12 +134,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: trip }, { status: 201 });
-  } catch (error: any) {
-    const status = error.message?.includes('not found')
-      ? 404
-      : error.message?.includes('Unauthorized')
-      ? 403
-      : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+    }
+    return handleApiError(error);
   }
 }

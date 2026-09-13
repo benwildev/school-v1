@@ -45,6 +45,7 @@ next-env.d.ts
 # agents & ide
 .agents/
 .gemini/
+.claude/
 
 # test artifacts & playwright reports
 /test-results/

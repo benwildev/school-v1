@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/payments/[paymentId]
@@ -61,10 +62,7 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: payment });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

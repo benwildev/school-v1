@@ -7,6 +7,7 @@ import {
   calculateOverdueFine,
   calculateDamageCharge,
 } from '@/lib/library/fine-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function POST(
   request: NextRequest,
@@ -247,8 +248,7 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { AttendanceQuerySchema } from '@/lib/validation/attendance';
 import { isAdministrativeStaff } from '@/lib/academic/teacher-scope';
@@ -33,9 +33,11 @@ export async function GET(request: NextRequest) {
     const isAdmin = await isAdministrativeStaff(context.userId, schoolId);
     if (!isAdmin) {
       // Find teacher profile
-      const teacher = await prisma.teacher.findFirst({
-        where: { userId: context.userId, schoolId, status: 'ACTIVE' },
-      });
+      const teacher = await withTenantContext(schoolId, (tx) =>
+        tx.teacher.findFirst({
+          where: { userId: context.userId, schoolId, status: 'ACTIVE' },
+        })
+      );
 
       if (!teacher) {
         return NextResponse.json(

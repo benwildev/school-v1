@@ -3,6 +3,7 @@ import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { UpdateInventoryItemSchema } from '@/lib/validation/inventory';
 import { calculateCurrentStock, evaluateStockThresholds } from '@/lib/inventory/stock-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(
   request: NextRequest,
@@ -51,9 +52,8 @@ export async function GET(
         ...thresholds,
       },
     });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -87,8 +87,7 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

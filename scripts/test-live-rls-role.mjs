@@ -3,9 +3,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Build URL for edusmart_app_user
+const appUserPassword = process.env.EDUSMART_APP_DB_PASSWORD;
+if (!appUserPassword) {
+  throw new Error('EDUSMART_APP_DB_PASSWORD env var must be set to the edusmart_app_user password before running this script.');
+}
 const dbUrl = new URL(process.env.DATABASE_URL);
 dbUrl.username = 'edusmart_app_user';
-dbUrl.password = 'edusmart_app_password_2026_secure!';
+dbUrl.password = appUserPassword;
 const appUserUrl = dbUrl.toString();
 
 const pool = new pg.Pool({ connectionString: appUserUrl });
@@ -71,7 +75,7 @@ async function testRls() {
       // Test with school2 context
       await client.query(`SET LOCAL app.current_school_id = '${school2.id}';`);
       const school2Students = await client.query(`SELECT count(*) FROM students;`);
-      console.log(`Students visible for ${school2.name} (${school2.id}):`, school2Students.rows[0].count);
+      console.log(`Students visible for ${school2.name_en} (${school2.id}):`, school2Students.rows[0].count);
 
       const school2Check = await client.query(`SELECT distinct school_id FROM students;`);
       console.log(`Distinct school_ids visible in school2 context:`, school2Check.rows.map(r => r.school_id));

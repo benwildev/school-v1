@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSchool } from '@/lib/authorization/engine';
 import { exportReport } from '@/lib/reports/report-export';
 import { ExportFormat } from '@/lib/reports/report-types';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET & POST /api/school/reports/[reportId]/export
@@ -47,17 +48,8 @@ export async function GET(
     const format = ((searchParams.get('format') || 'CSV').toUpperCase()) as ExportFormat;
 
     return await handleExport(request, reportId, searchParams, format);
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
-    if (error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    if (error.message?.startsWith('NOT_FOUND')) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-    return NextResponse.json({ error: error.message || 'Export Failed' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -72,16 +64,7 @@ export async function POST(
     const filters = body.filters || {};
 
     return await handleExport(request, reportId, filters, format);
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
-    if (error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    if (error.message?.startsWith('NOT_FOUND')) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-    return NextResponse.json({ error: error.message || 'Export Failed' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

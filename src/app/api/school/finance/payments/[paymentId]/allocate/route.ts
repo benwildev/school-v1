@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { PaymentAllocateSchema } from '@/lib/validation/finance';
 import { toDecimal, addMoney, subMoney } from '@/lib/finance/money';
 import { Decimal } from '@prisma/client/runtime/library';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * POST /api/school/finance/payments/[paymentId]/allocate
@@ -22,8 +23,10 @@ export async function POST(
     });
     const { paymentId } = await params;
 
-    const payment = await prisma.payment.findFirst({
-      where: { id: paymentId, schoolId },
+    const payment = await withTenantContext(schoolId, async (tx) => {
+      return tx.payment.findFirst({
+        where: { id: paymentId, schoolId },
+      });
     });
 
     if (!payment) {
@@ -211,10 +214,7 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, data: createdAllocations }, { status: 201 });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

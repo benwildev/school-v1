@@ -4,6 +4,7 @@ import { withTenantContext } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { ShiftConfigUpdateSchema, ShiftItemConfig } from '@/lib/validation/academic-structure';
 import { AcademicShift } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 const CANONICAL_SHIFTS: Array<{
   shift: AcademicShift;
@@ -96,20 +97,8 @@ export async function GET(req: NextRequest) {
       data,
       canUpdate: updateCheck.authorized,
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('GET /api/school/academic-structure/shifts error:', error);
-    return NextResponse.json(
-      { success: false, error: 'শিফট তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -192,19 +181,7 @@ export async function PATCH(req: NextRequest) {
       message: 'শিফট কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে।',
       data: input.shifts,
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('PATCH /api/school/academic-structure/shifts error:', error);
-    return NextResponse.json(
-      { success: false, error: 'শিফট কনফিগারেশন আপডেট করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

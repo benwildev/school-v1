@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withTenantContext } from '@/lib/db';
 import { requireAuth } from '@/lib/authorization/engine';
 import { MarkWorkflowStatus } from '@prisma/client';
 
@@ -11,21 +11,27 @@ export async function GET(request: NextRequest) {
   try {
     const context = await requireAuth(request);
 
+    if (!context.activeSchoolId) {
+      return NextResponse.json({ error: 'FORBIDDEN: No active school selected.' }, { status: 403 });
+    }
+
     // Find student identity for the authenticated student user
-    const studentUser = await prisma.studentUser.findUnique({
-      where: { userId: context.userId },
-      include: {
-        student: {
-          select: {
-            id: true,
-            schoolId: true,
-            studentCode: true,
-            fullNameEn: true,
-            fullNameBn: true,
+    const studentUser = await withTenantContext(context.activeSchoolId, (tx) =>
+      tx.studentUser.findUnique({
+        where: { userId: context.userId },
+        include: {
+          student: {
+            select: {
+              id: true,
+              schoolId: true,
+              studentCode: true,
+              fullNameEn: true,
+              fullNameBn: true,
+            },
           },
         },
-      },
-    });
+      })
+    );
 
     if (!studentUser) {
       return NextResponse.json(

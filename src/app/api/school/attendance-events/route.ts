@@ -10,6 +10,7 @@ import {
   AttendanceRuleConfig,
 } from '@/lib/attendance/rules-engine';
 import { AttendanceSource } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,10 +54,8 @@ export async function GET(request: NextRequest) {
         },
       });
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -330,10 +329,7 @@ export async function POST(request: NextRequest) {
         results,
       }, { status: 200 });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

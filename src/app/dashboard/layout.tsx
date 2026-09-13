@@ -28,7 +28,6 @@ import {
   CalendarCheck,
   DollarSign,
   Layers,
-  ChevronDown,
 } from 'lucide-react';
 
 interface AuthUser {
@@ -79,9 +78,7 @@ export default function DashboardLayout({
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [activeSchool, setActiveSchool] = useState<SchoolItem | null>(null);
-  const [availableSchools, setAvailableSchools] = useState<SchoolItem[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [schoolDropdownOpen, setSchoolDropdownOpen] = useState(false);
 
   useEffect(() => {
     async function loadUserProfile() {
@@ -96,7 +93,6 @@ export default function DashboardLayout({
           setUser(data.user);
           setRoles(data.roles || []);
           setPermissions(data.permissions || []);
-          setAvailableSchools(data.availableSchools || []);
           const current = data.availableSchools?.find(
             (s: SchoolItem) => s.id === data.activeSchoolId
           );
@@ -119,7 +115,6 @@ export default function DashboardLayout({
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setMobileMenuOpen(false);
-        setSchoolDropdownOpen(false);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -447,46 +442,8 @@ export default function DashboardLayout({
               </Link>
             </div>
 
-            {/* Right: School Switcher, User Details, Logout */}
+            {/* Right: User Details, Logout */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Multi-School Switcher Dropdown (if user has > 1 school) */}
-              {availableSchools.length > 1 && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setSchoolDropdownOpen(!schoolDropdownOpen)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    <Building2 className="size-3.5 text-slate-400" />
-                    <span className="hidden md:inline">শাখা পরিবর্তন</span>
-                    <ChevronDown className="size-3 text-slate-400" />
-                  </button>
-                  {schoolDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50">
-                      {availableSchools.map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveSchool(s);
-                            setSchoolDropdownOpen(false);
-                            router.refresh();
-                          }}
-                          className={`w-full text-left px-3.5 py-2 text-xs transition ${
-                            s.id === activeSchool?.id
-                              ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          <div>{s.nameBn}</div>
-                          <div className="text-[10px] text-slate-400">{s.nameEn}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* User Profile Badge */}
               {user && (
                 <div className="hidden sm:flex flex-col items-end text-right">

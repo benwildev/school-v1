@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { AuditAction } from '@prisma/client';
 import { z } from 'zod';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 const DiscountCancelSchema = z.object({
   reason: z.string().min(3, 'Cancellation reason is required').max(500),
@@ -23,8 +24,10 @@ export async function POST(
     });
     const { discountId } = await params;
 
-    const existing = await prisma.studentDiscount.findFirst({
-      where: { id: discountId, schoolId },
+    const existing = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentDiscount.findFirst({
+        where: { id: discountId, schoolId },
+      });
     });
 
     if (!existing) {
@@ -73,10 +76,7 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

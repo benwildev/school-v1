@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withTenantContext } from '@/lib/db';
 import { requireAuth } from '@/lib/authorization/engine';
 import { calculateOverdueDays } from '@/lib/library/circulation-engine';
 
@@ -12,23 +12,32 @@ export async function GET(request: NextRequest) {
   try {
     const context = await requireAuth(request);
 
+    if (!context.activeSchoolId) {
+      return NextResponse.json(
+        { success: false, error: 'FORBIDDEN: No active school selected.' },
+        { status: 403 }
+      );
+    }
+
     // Resolve student profile
-    const studentUser = await prisma.studentUser.findUnique({
-      where: { userId: context.userId },
-      include: {
-        student: {
-          select: {
-            id: true,
-            schoolId: true,
-            studentCode: true,
-            firstNameEn: true,
-            lastNameEn: true,
-            fullNameEn: true,
-            fullNameBn: true,
+    const studentUser = await withTenantContext(context.activeSchoolId, (tx) =>
+      tx.studentUser.findUnique({
+        where: { userId: context.userId },
+        include: {
+          student: {
+            select: {
+              id: true,
+              schoolId: true,
+              studentCode: true,
+              firstNameEn: true,
+              lastNameEn: true,
+              fullNameEn: true,
+              fullNameBn: true,
+            },
           },
         },
-      },
-    });
+      })
+    );
 
     if (!studentUser || !studentUser.student) {
       return NextResponse.json(

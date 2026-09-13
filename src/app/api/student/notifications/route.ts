@@ -1,26 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requireAuth } from '@/lib/authorization/engine';
 
 export async function GET(request: NextRequest) {
   try {
     const context = await requireAuth(request);
 
+    if (!context.activeSchoolId) {
+      return NextResponse.json({ error: 'FORBIDDEN: No active school selected.' }, { status: 403 });
+    }
+
     // 1. Find StudentUser mapping
-    const studentUser = await prisma.studentUser.findUnique({
-      where: { userId: context.userId },
-      include: {
-        student: {
-          select: {
-            id: true,
-            schoolId: true,
-            studentCode: true,
-            fullNameEn: true,
-            fullNameBn: true,
+    const studentUser = await withTenantContext(context.activeSchoolId, (tx) =>
+      tx.studentUser.findUnique({
+        where: { userId: context.userId },
+        include: {
+          student: {
+            select: {
+              id: true,
+              schoolId: true,
+              studentCode: true,
+              fullNameEn: true,
+              fullNameBn: true,
+            },
           },
         },
-      },
-    });
+      })
+    );
 
     if (!studentUser) {
       return NextResponse.json({ error: 'Student profile not found for this account' }, { status: 403 });

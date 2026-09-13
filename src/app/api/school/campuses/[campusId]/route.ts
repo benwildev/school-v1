@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { withTenantContext } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { CampusUpdateSchema } from '@/lib/validation/campus';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 const CAMPUS_SELECT = {
   id: true,
@@ -52,20 +53,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: campus });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('GET /api/school/campuses/[campusId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'ক্যাম্পাসের তথ্য লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -178,19 +167,7 @@ export async function PATCH(
       }
       throw dbError;
     }
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('PATCH /api/school/campuses/[campusId] error:', error);
-    return NextResponse.json(
-      { success: false, error: 'ক্যাম্পাসের তথ্য হালনাগাদ করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

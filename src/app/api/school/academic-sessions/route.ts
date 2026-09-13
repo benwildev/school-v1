@@ -5,6 +5,7 @@ import { withTenantContext } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { AcademicSessionCreateSchema, computeSessionStatus } from '@/lib/validation/academic-session';
 import { resolveSessionStatusPatch } from '@/lib/academic-session';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 const SESSION_SELECT = {
   id: true,
@@ -51,20 +52,8 @@ export async function GET(req: NextRequest) {
       canCreate: createCheck.authorized,
       canUpdate: updateCheck.authorized,
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('GET /api/school/academic-sessions error:', error);
-    return NextResponse.json(
-      { success: false, error: 'শিক্ষাবর্ষের তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -162,19 +151,7 @@ export async function POST(req: NextRequest) {
       }
       throw dbError;
     }
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ success: false, error: err.message.replace('FORBIDDEN: ', '') }, { status: 403 });
-    }
-
-    console.error('POST /api/school/academic-sessions error:', error);
-    return NextResponse.json(
-      { success: false, error: 'শিক্ষাবর্ষ তৈরি করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,4 +1,5 @@
-import { prisma } from '../db';
+import { PrismaClient } from '@prisma/client';
+import { withIdentityContext } from '../db';
 
 export interface AccessibleSchool {
   id: string;
@@ -13,7 +14,16 @@ export interface AccessibleSchool {
  * Returns all active schools a user has legitimate membership or platform access to.
  */
 export async function getUserAccessibleSchools(userId: string): Promise<AccessibleSchool[]> {
-  const user = await prisma.user.findUnique({
+  // Cross-school identity lookup: this necessarily spans every school the user
+  // has any relationship to, so it must run before a single tenant scope is set.
+  return withIdentityContext((tx) => getUserAccessibleSchoolsInTx(tx, userId));
+}
+
+async function getUserAccessibleSchoolsInTx(
+  tx: PrismaClient,
+  userId: string
+): Promise<AccessibleSchool[]> {
+  const user = await tx.user.findUnique({
     where: { id: userId },
     include: {
       school: true,
@@ -76,7 +86,7 @@ export async function getUserAccessibleSchools(userId: string): Promise<Accessib
             existing.roleCodes.push(role.code);
           }
         } else {
-          const s = await prisma.school.findUnique({
+          const s = await tx.school.findUnique({
             where: { id: role.schoolId, status: 'ACTIVE', deletedAt: null },
           });
           if (s) {
@@ -158,7 +168,7 @@ export async function getUserAccessibleSchools(userId: string): Promise<Accessib
 
   // 6. Super Admin Platform Access (can access all active schools)
   if (user.isSuperAdmin) {
-    const allSchools = await prisma.school.findMany({
+    const allSchools = await tx.school.findMany({
       where: { status: 'ACTIVE', deletedAt: null },
       select: { id: true, slug: true, nameEn: true, nameBn: true },
     });

@@ -3,6 +3,7 @@ import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { AccountQuerySchema } from '@/lib/validation/account';
 import { Prisma } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/accounts/students
@@ -171,14 +172,7 @@ export async function GET(request: NextRequest) {
       success: true,
       ...result,
     });
-  } catch (error: any) {
-    if (error?.status === 401 || error?.status === 403) {
-      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
-    }
-    console.error('Error fetching student accounts:', error);
-    return NextResponse.json(
-      { success: false, error: 'শিক্ষার্থী অ্যাকাউন্ট তালিকা লোড করতে ব্যর্থ হয়েছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

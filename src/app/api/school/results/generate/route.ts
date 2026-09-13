@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
+import { handleApiError } from '@/lib/api/handle-api-error';
 import { ResultGenerateSchema } from '@/lib/validation/exam';
 import { calculateOverallGpa, rankStudentResults, SubjectScoreInput, StudentRankCandidate } from '@/lib/academic/grading';
 import { ExamStatus, AuditAction } from '@prisma/client';
@@ -248,11 +249,7 @@ export async function POST(request: NextRequest) {
         classId,
       },
     });
-  } catch (error: any) {
-    console.error('Error generating results:', error);
-    if (error.message?.startsWith('UNAUTHORIZED') || error.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

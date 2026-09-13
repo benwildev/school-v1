@@ -1,4 +1,4 @@
-import { prisma } from '../db';
+import { withIdentityContext, withTenantContext } from '../db';
 
 export interface ScopeCheckResult {
   isAuthorized: boolean;
@@ -12,24 +12,27 @@ export interface ScopeCheckResult {
  * that bypass granular teacher assignment scope constraints.
  */
 export async function isAdministrativeStaff(userId: string, schoolId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId, deletedAt: null },
-    include: {
-      userRoles: {
-        where: {
-          role: {
-            OR: [
-              { schoolId },
-              { schoolId: null, isSystemRole: true },
-            ],
+  // Cross-school identity lookup: the user row and its roles aren't scoped to one school.
+  const user = await withIdentityContext((tx) =>
+    tx.user.findUnique({
+      where: { id: userId, deletedAt: null },
+      include: {
+        userRoles: {
+          where: {
+            role: {
+              OR: [
+                { schoolId },
+                { schoolId: null, isSystemRole: true },
+              ],
+            },
+          },
+          include: {
+            role: true,
           },
         },
-        include: {
-          role: true,
-        },
       },
-    },
-  });
+    })
+  );
 
   if (!user || user.status !== 'ACTIVE') {
     return false;
@@ -63,50 +66,51 @@ export async function verifyTeacherAttendanceScope(params: {
     return { isAuthorized: true, isPrivilegedAdmin: true };
   }
 
-  // 2. Fetch linked Teacher identity
-  const teacher = await prisma.teacher.findFirst({
-    where: {
-      userId,
-      schoolId,
-      status: 'ACTIVE',
-    },
-  });
+  // 2. Fetch linked Teacher identity + 3. authoritative TeacherAssignment
+  return withTenantContext(schoolId, async (tx) => {
+    const teacher = await tx.teacher.findFirst({
+      where: {
+        userId,
+        schoolId,
+        status: 'ACTIVE',
+      },
+    });
 
-  if (!teacher) {
+    if (!teacher) {
+      return {
+        isAuthorized: false,
+        isPrivilegedAdmin: false,
+        reason: 'No active teacher profile found linked to this account.',
+      };
+    }
+
+    const assignment = await tx.teacherAssignment.findFirst({
+      where: {
+        schoolId,
+        teacherId: teacher.id,
+        academicSessionId,
+        classId,
+        sectionId,
+        canTakeAttendance: true,
+        status: 'ACTIVE',
+      },
+    });
+
+    if (!assignment) {
+      return {
+        isAuthorized: false,
+        isPrivilegedAdmin: false,
+        teacherId: teacher.id,
+        reason: 'Teacher is not authorized or assigned to record attendance for this class and section.',
+      };
+    }
+
     return {
-      isAuthorized: false,
+      isAuthorized: true,
       isPrivilegedAdmin: false,
-      reason: 'No active teacher profile found linked to this account.',
-    };
-  }
-
-  // 3. Query authoritative TeacherAssignment
-  const assignment = await prisma.teacherAssignment.findFirst({
-    where: {
-      schoolId,
       teacherId: teacher.id,
-      academicSessionId,
-      classId,
-      sectionId,
-      canTakeAttendance: true,
-      status: 'ACTIVE',
-    },
+    };
   });
-
-  if (!assignment) {
-    return {
-      isAuthorized: false,
-      isPrivilegedAdmin: false,
-      teacherId: teacher.id,
-      reason: 'Teacher is not authorized or assigned to record attendance for this class and section.',
-    };
-  }
-
-  return {
-    isAuthorized: true,
-    isPrivilegedAdmin: false,
-    teacherId: teacher.id,
-  };
 }
 
 /**
@@ -129,53 +133,54 @@ export async function verifyTeacherMarksScope(params: {
     return { isAuthorized: true, isPrivilegedAdmin: true };
   }
 
-  // 2. Fetch linked Teacher identity
-  const teacher = await prisma.teacher.findFirst({
-    where: {
-      userId,
-      schoolId,
-      status: 'ACTIVE',
-    },
-  });
+  // 2. Fetch linked Teacher identity + 3. authoritative TeacherAssignment
+  // (can match either direct subject teacher assignment OR class coordinator with subject wildcard)
+  return withTenantContext(schoolId, async (tx) => {
+    const teacher = await tx.teacher.findFirst({
+      where: {
+        userId,
+        schoolId,
+        status: 'ACTIVE',
+      },
+    });
 
-  if (!teacher) {
+    if (!teacher) {
+      return {
+        isAuthorized: false,
+        isPrivilegedAdmin: false,
+        reason: 'No active teacher profile found linked to this account.',
+      };
+    }
+
+    const assignment = await tx.teacherAssignment.findFirst({
+      where: {
+        schoolId,
+        teacherId: teacher.id,
+        academicSessionId,
+        classId,
+        sectionId,
+        canEnterMarks: true,
+        status: 'ACTIVE',
+        OR: [
+          { subjectId },
+          { subjectId: null }, // Exam coordinator / Head class teacher with enter marks rights
+        ],
+      },
+    });
+
+    if (!assignment) {
+      return {
+        isAuthorized: false,
+        isPrivilegedAdmin: false,
+        teacherId: teacher.id,
+        reason: 'Teacher is not assigned or authorized to enter marks for this subject in this section.',
+      };
+    }
+
     return {
-      isAuthorized: false,
+      isAuthorized: true,
       isPrivilegedAdmin: false,
-      reason: 'No active teacher profile found linked to this account.',
-    };
-  }
-
-  // 3. Query authoritative TeacherAssignment
-  // Can match either direct subject teacher assignment OR class coordinator with subject wildcard
-  const assignment = await prisma.teacherAssignment.findFirst({
-    where: {
-      schoolId,
       teacherId: teacher.id,
-      academicSessionId,
-      classId,
-      sectionId,
-      canEnterMarks: true,
-      status: 'ACTIVE',
-      OR: [
-        { subjectId },
-        { subjectId: null }, // Exam coordinator / Head class teacher with enter marks rights
-      ],
-    },
+    };
   });
-
-  if (!assignment) {
-    return {
-      isAuthorized: false,
-      isPrivilegedAdmin: false,
-      teacherId: teacher.id,
-      reason: 'Teacher is not assigned or authorized to enter marks for this subject in this section.',
-    };
-  }
-
-  return {
-    isAuthorized: true,
-    isPrivilegedAdmin: false,
-    teacherId: teacher.id,
-  };
 }

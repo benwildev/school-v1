@@ -7,6 +7,7 @@ import {
   isValidAdmissionStatusTransition,
 } from '@/lib/validation/admission';
 import { AdmissionStatus } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/admissions/[applicationId]
@@ -67,22 +68,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: application });
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত অ্যাক্সেস।' }, { status: 401 });
-    }
-    if (err.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: 'ভর্তি আবেদন দেখার অনুমতি আপনার নেই।' },
-        { status: 403 }
-      );
-    }
-    console.error('Admission Detail Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'আবেদনের তথ্য লোড করার সময় ত্রুটি ঘটেছে।' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -187,25 +174,11 @@ export async function PATCH(
       message: 'আবেদনের স্ট্যাটাস সফলভাবে আপডেট করা হয়েছে।',
       data: result.updated,
     });
-  } catch (error: unknown) {
+  } catch (error) {
     const err = error as { status?: number; message?: string };
-    if (err.status) {
+    if (err?.status) {
       return NextResponse.json({ success: false, error: err.message }, { status: err.status });
     }
-    const e = error as Error;
-    if (e.message?.startsWith('UNAUTHORIZED')) {
-      return NextResponse.json({ success: false, error: 'অননুমোদিত অ্যাক্সেস।' }, { status: 401 });
-    }
-    if (e.message?.startsWith('FORBIDDEN')) {
-      return NextResponse.json(
-        { success: false, error: 'স্ট্যাটাস পরিবর্তনের অনুমতি আপনার নেই।' },
-        { status: 403 }
-      );
-    }
-    console.error('Admission Status Update Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'স্ট্যাটাস আপডেট করার সময় ত্রুটি ঘটেছে।' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

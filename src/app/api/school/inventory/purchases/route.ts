@@ -3,6 +3,7 @@ import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { CreatePurchaseSchema } from '@/lib/validation/inventory';
 import { calculatePurchaseTotal } from '@/lib/inventory/purchase-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,9 +37,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: purchases });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -154,8 +154,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: purchase }, { status: 201 });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -3,6 +3,7 @@ import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { UpdateTripStatusSchema } from '@/lib/validation/transport';
 import { isValidTripStatusTransition } from '@/lib/transport/trip-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(
   request: NextRequest,
@@ -77,9 +78,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: trip });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -148,15 +148,16 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true, data: updatedTrip });
-  } catch (error: any) {
-    const status = error.message?.includes('not found')
-      ? 404
-      : error.message?.includes('frozen') || error.message?.includes('cannot be altered')
-      ? 409
-      : error.message?.includes('Unauthorized')
-      ? 403
-      : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+      }
+      if (error.message.includes('frozen') || error.message.includes('cannot be altered')) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 409 });
+      }
+    }
+    return handleApiError(error);
   }
 }
 
@@ -198,14 +199,15 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.message?.includes('not found')
-      ? 404
-      : error.message?.includes('historical')
-      ? 409
-      : error.message?.includes('Unauthorized')
-      ? 403
-      : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+      }
+      if (error.message.includes('historical')) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 409 });
+      }
+    }
+    return handleApiError(error);
   }
 }

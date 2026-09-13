@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { RefundCreateSchema } from '@/lib/validation/finance';
@@ -7,6 +7,7 @@ import { generateRefundNumber } from '@/lib/finance/invoice';
 import { toDecimal, addMoney, subMoney } from '@/lib/finance/money';
 import { Decimal } from '@prisma/client/runtime/library';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/refunds
@@ -18,42 +19,41 @@ export async function GET(request: NextRequest) {
       permission: 'PAYMENTS_VIEW',
     });
 
-    const refunds = await prisma.refund.findMany({
-      where: { schoolId },
-      include: {
-        payment: {
-          select: {
-            paymentNumber: true,
-            totalAmount: true,
-            paymentMethod: true,
+    const refunds = await withTenantContext(schoolId, async (tx) => {
+      return tx.refund.findMany({
+        where: { schoolId },
+        include: {
+          payment: {
+            select: {
+              paymentNumber: true,
+              totalAmount: true,
+              paymentMethod: true,
+            },
+          },
+          student: {
+            select: {
+              id: true,
+              studentCode: true,
+              firstNameEn: true,
+              lastNameEn: true,
+              fullNameEn: true,
+              fullNameBn: true,
+            },
+          },
+          approvedBy: {
+            select: {
+              id: true,
+              fullName: true,
+            },
           },
         },
-        student: {
-          select: {
-            id: true,
-            studentCode: true,
-            firstNameEn: true,
-            lastNameEn: true,
-            fullNameEn: true,
-            fullNameBn: true,
-          },
-        },
-        approvedBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'desc' },
+      });
     });
 
     return NextResponse.json({ success: true, data: refunds });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -81,16 +81,18 @@ export async function POST(request: NextRequest) {
     const data = parseResult.data;
     const refundAmt = toDecimal(data.amount);
 
-    const payment = await prisma.payment.findFirst({
-      where: {
-        id: data.paymentId,
-        schoolId,
-        studentId: data.studentId,
-      },
-      include: {
-        refunds: true,
-        allocations: true,
-      },
+    const payment = await withTenantContext(schoolId, async (tx) => {
+      return tx.payment.findFirst({
+        where: {
+          id: data.paymentId,
+          schoolId,
+          studentId: data.studentId,
+        },
+        include: {
+          refunds: true,
+          allocations: true,
+        },
+      });
     });
 
     if (!payment) {
@@ -211,10 +213,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: refund }, { status: 201 });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

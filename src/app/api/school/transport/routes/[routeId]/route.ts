@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { UpdateRouteSchema } from '@/lib/validation/transport';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(
   request: NextRequest,
@@ -34,9 +35,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: route });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -72,13 +72,11 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    const status = error.message?.includes('not found')
-      ? 404
-      : error.message?.includes('Unauthorized')
-      ? 403
-      : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+    }
+    return handleApiError(error);
   }
 }
 
@@ -126,12 +124,10 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.message?.includes('not found')
-      ? 404
-      : error.message?.includes('Unauthorized')
-      ? 403
-      : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 404 });
+    }
+    return handleApiError(error);
   }
 }

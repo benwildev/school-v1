@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { StudentDiscountUpdateSchema } from '@/lib/validation/finance';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/discounts/[discountId]
@@ -18,18 +19,20 @@ export async function GET(
     });
     const { discountId } = await params;
 
-    const discount = await prisma.studentDiscount.findFirst({
-      where: { id: discountId, schoolId },
-      include: {
-        student: true,
-        feeType: true,
-        authorizedBy: {
-          select: {
-            id: true,
-            fullName: true,
+    const discount = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentDiscount.findFirst({
+        where: { id: discountId, schoolId },
+        include: {
+          student: true,
+          feeType: true,
+          authorizedBy: {
+            select: {
+              id: true,
+              fullName: true,
+            },
           },
         },
-      },
+      });
     });
 
     if (!discount) {
@@ -37,11 +40,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: discount });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -59,8 +59,10 @@ export async function PUT(
     });
     const { discountId } = await params;
 
-    const existing = await prisma.studentDiscount.findFirst({
-      where: { id: discountId, schoolId },
+    const existing = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentDiscount.findFirst({
+        where: { id: discountId, schoolId },
+      });
     });
 
     if (!existing) {
@@ -116,10 +118,7 @@ export async function PUT(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

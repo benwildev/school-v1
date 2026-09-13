@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/authorization/engine';
 import { CreateAssetSchema } from '@/lib/validation/inventory';
 import { generateAssetCode } from '@/lib/inventory/asset-engine';
 import { generateBarcode } from '@/lib/library/book-engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,9 +55,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: assets });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -162,8 +162,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: asset }, { status: 201 });
-  } catch (error: any) {
-    const status = error.message?.includes('Unauthorized') ? 403 : 400;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

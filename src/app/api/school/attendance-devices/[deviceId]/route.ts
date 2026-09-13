@@ -5,6 +5,7 @@ import { logAuditEvent } from '@/lib/audit/logger';
 import { AuditAction } from '@prisma/client';
 import { DeviceUpdateSchema } from '@/lib/validation/attendance-advanced';
 import { encryptCredential, hashApiKey, redactDeviceSecrets } from '@/lib/security/credential-encryption';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 export async function GET(
   request: NextRequest,
@@ -29,10 +30,8 @@ export async function GET(
 
       return NextResponse.json({ success: true, data: redactDeviceSecrets(device) });
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -86,11 +85,8 @@ export async function PUT(
 
       return NextResponse.json({ success: true, data: redactDeviceSecrets(updated) });
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -129,9 +125,7 @@ export async function DELETE(
 
       return NextResponse.json({ success: true, message: 'Device deleted successfully' });
     });
-  } catch (error: any) {
-    if (error.message?.startsWith('UNAUTHORIZED')) return NextResponse.json({ error: error.message }, { status: 401 });
-    if (error.message?.startsWith('FORBIDDEN')) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

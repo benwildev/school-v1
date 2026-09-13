@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/receipts/[receiptId]
@@ -16,37 +17,39 @@ export async function GET(
     });
     const { receiptId } = await params;
 
-    const receipt = await prisma.receipt.findFirst({
-      where: { id: receiptId, schoolId },
-      include: {
-        payment: {
-          include: {
-            student: true,
-            enrollment: {
-              include: {
-                class: true,
-                section: true,
-                academicSession: true,
+    const receipt = await withTenantContext(schoolId, async (tx) => {
+      return tx.receipt.findFirst({
+        where: { id: receiptId, schoolId },
+        include: {
+          payment: {
+            include: {
+              student: true,
+              enrollment: {
+                include: {
+                  class: true,
+                  section: true,
+                  academicSession: true,
+                },
               },
-            },
-            allocations: {
-              include: {
-                studentFee: {
-                  include: {
-                    feeType: true,
+              allocations: {
+                include: {
+                  studentFee: {
+                    include: {
+                      feeType: true,
+                    },
                   },
                 },
               },
             },
           },
-        },
-        issuedBy: {
-          select: {
-            id: true,
-            fullName: true,
+          issuedBy: {
+            select: {
+              id: true,
+              fullName: true,
+            },
           },
         },
-      },
+      });
     });
 
     if (!receipt) {
@@ -64,10 +67,7 @@ export async function GET(
     });
 
     return NextResponse.json({ success: true, data: receipt });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

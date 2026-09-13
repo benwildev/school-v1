@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { FeeStructureUpdateSchema } from '@/lib/validation/finance';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/fee-structures/[structureId]
@@ -18,14 +19,16 @@ export async function GET(
     });
     const { structureId } = await params;
 
-    const structure = await prisma.feeStructure.findFirst({
-      where: { id: structureId, schoolId },
-      include: {
-        feeType: true,
-        class: true,
-        group: true,
-        academicSession: true,
-      },
+    const structure = await withTenantContext(schoolId, async (tx) => {
+      return tx.feeStructure.findFirst({
+        where: { id: structureId, schoolId },
+        include: {
+          feeType: true,
+          class: true,
+          group: true,
+          academicSession: true,
+        },
+      });
     });
 
     if (!structure) {
@@ -33,11 +36,8 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: structure });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -56,8 +56,10 @@ export async function PUT(
     });
     const { structureId } = await params;
 
-    const existing = await prisma.feeStructure.findFirst({
-      where: { id: structureId, schoolId },
+    const existing = await withTenantContext(schoolId, async (tx) => {
+      return tx.feeStructure.findFirst({
+        where: { id: structureId, schoolId },
+      });
     });
 
     if (!existing) {
@@ -107,10 +109,7 @@ export async function PUT(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

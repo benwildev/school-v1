@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withTenantContext } from '@/lib/db';
+import { withTenantContext } from '@/lib/db';
 import { requirePermission } from '@/lib/authorization/engine';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { StudentDiscountCreateSchema } from '@/lib/validation/finance';
 import { AuditAction } from '@prisma/client';
+import { handleApiError } from '@/lib/api/handle-api-error';
 
 /**
  * GET /api/school/finance/discounts
@@ -26,36 +27,35 @@ export async function GET(request: NextRequest) {
     if (feeTypeId) where.feeTypeId = feeTypeId;
     if (status) where.status = status;
 
-    const discounts = await prisma.studentDiscount.findMany({
-      where,
-      include: {
-        student: {
-          select: {
-            id: true,
-            studentCode: true,
-            firstNameEn: true,
-            lastNameEn: true,
-            fullNameEn: true,
-            fullNameBn: true,
+    const discounts = await withTenantContext(schoolId, async (tx) => {
+      return tx.studentDiscount.findMany({
+        where,
+        include: {
+          student: {
+            select: {
+              id: true,
+              studentCode: true,
+              firstNameEn: true,
+              lastNameEn: true,
+              fullNameEn: true,
+              fullNameBn: true,
+            },
+          },
+          feeType: true,
+          authorizedBy: {
+            select: {
+              id: true,
+              fullName: true,
+            },
           },
         },
-        feeType: true,
-        authorizedBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'desc' },
+      });
     });
 
     return NextResponse.json({ success: true, data: discounts });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -91,14 +91,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify student and enrollment belong to the school
-    const [student, enrollment] = await Promise.all([
-      prisma.student.findFirst({
-        where: { id: data.studentId, schoolId },
-      }),
-      prisma.enrollment.findFirst({
-        where: { id: data.enrollmentId, schoolId, studentId: data.studentId },
-      }),
-    ]);
+    const [student, enrollment] = await withTenantContext(schoolId, async (tx) => {
+      return Promise.all([
+        tx.student.findFirst({
+          where: { id: data.studentId, schoolId },
+        }),
+        tx.enrollment.findFirst({
+          where: { id: data.enrollmentId, schoolId, studentId: data.studentId },
+        }),
+      ]);
+    });
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found in this school' }, { status: 404 });
@@ -111,8 +113,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (data.feeTypeId) {
-      const feeType = await prisma.feeType.findFirst({
-        where: { id: data.feeTypeId, schoolId },
+      const feeTypeId = data.feeTypeId;
+      const feeType = await withTenantContext(schoolId, async (tx) => {
+        return tx.feeType.findFirst({
+          where: { id: feeTypeId, schoolId },
+        });
       });
       if (!feeType) {
         return NextResponse.json({ error: 'Fee type not found' }, { status: 404 });
@@ -158,10 +163,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: discount }, { status: 201 });
-  } catch (error: any) {
-    if (error.status) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
